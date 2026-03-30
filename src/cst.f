@@ -29,12 +29,12 @@ C
 C    CSTSURF(PSI, NPSI, A, NA, N1, N2, TE_HALF, LEM, Y)
 C        Evaluate one CST surface over NPSI psi stations.
 C
-C    SETCST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
-C        f2py API entry point. Builds a CST airfoil, loads it into
+C    CST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
+C        Computation routine. Builds a CST airfoil, loads it into
 C        the XFOIL buffer arrays XB/YB/NB, and calls PANGEN.
 C
-C        Python signature (NAu and NAl are hidden by f2py):
-C            xf.setcst(LEM, TE, Au, Al, N1, N2)
+C        Called by the SETCST wrapper in api.f which carries the
+C        f2py directives and forms the Python-facing entry point.
 C
 C***********************************************************************
 
@@ -177,9 +177,9 @@ C
 
 
 C=======================================================================
-      SUBROUTINE SETCST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
+      SUBROUTINE CST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
 C-----------------------------------------------
-C     f2py API entry point.
+C     CST computation routine.
 C
 C     Generates a CST aerofoil from the supplied upper and lower
 C     surface coefficient vectors, loads the coordinates into the
@@ -198,16 +198,11 @@ C                   Set to 0.0 to disable.
 C       TE          trailing-edge thickness as a fraction of chord.
 C                   Set to 0.0 for a sharp trailing edge.
 C       Au(NAu)     upper surface CST coefficients (A_0 ... A_{n_u})
-C       NAu         length of Au  -- HIDDEN from Python by f2py;
-C                   inferred automatically from the Au array.
+C       NAu         length of Au
 C       Al(NAl)     lower surface CST coefficients (A_0 ... A_{n_l})
-C       NAl         length of Al  -- HIDDEN from Python by f2py;
-C                   inferred automatically from the Al array.
+C       NAl         length of Al
 C       N1, N2      class-function exponents.
 C                   Canonical aerofoil values: N1=0.5, N2=1.0.
-C
-C     Python call (NAu and NAl are hidden; Au/Al may differ in length):
-C       xf.setcst(LEM, TE, Au, Al, N1, N2)
 C
 C     Notes:
 C       - XFOIL must be initialised (xf.Initialise()) before calling.
@@ -215,19 +210,13 @@ C       - All dependent solution flags are reset after geometry loading,
 C         consistent with the behaviour of REPANEL in api.f.
 C       - Upper and lower coefficient vectors may have different lengths,
 C         allowing asymmetric polynomial degrees on each surface.
+C       - Called by SETCST in api.f (the f2py-facing wrapper).
 C-----------------------------------------------
       INCLUDE 'XFOIL.INC'
 C
       INTEGER NAu, NAl
       REAL    Au(NAu), Al(NAl)
       REAL    LEM, TE, N1, N2
-C
-Cf2py intent(in) :: LEM, TE
-Cf2py intent(in) :: Au
-Cf2py integer intent(hide),depend(Au) :: NAu = len(Au)
-Cf2py intent(in) :: Al
-Cf2py integer intent(hide),depend(Al) :: NAl = len(Al)
-Cf2py intent(in) :: N1, N2
 C
 C---- number of psi stations used to seed the buffer airfoil.
 C     101 gives smooth curvature for PANGEN to work with.
