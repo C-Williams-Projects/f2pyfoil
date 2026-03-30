@@ -6,8 +6,8 @@ Currently the only part of XFOIL that is implemented in f2pyfoil is the panel me
 This repository will be exclusively for the development of the Fortran side of the code and will provide no Python code. The Fortran code will be compiled into a shared library that can be imported and used in Python using the f2py tool. The Python wrapper code will be developed in a separate repository that will depend on this one.
 
 # Future Plans (v 1.1)
-- [ ] Add boundary layer data retrieval functions
-- [ ] Add parameterised airfoil geometry definitions (PARSEC, CST, etc.)
+- [x] Add boundary layer data retrieval functions
+- [x] Add parameterised airfoil geometry definitions (PARSEC, CST, etc.)
 - [ ] Add Laitone and Prandtl-Glauert compressibility corrections
 
 - [ ] Add support for other analysis routines (Surface-speed (QDES), Inverse (MDES) and Geometry (GDES))
