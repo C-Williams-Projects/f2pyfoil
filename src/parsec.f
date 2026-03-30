@@ -56,12 +56,12 @@ C
 C    PRSCSURF(PSI, NPSI, A, Y)
 C        Evaluate one PARSEC surface at NPSI chord stations.
 C
-C    SETPARSEC(rle_up, Xup, Zup, Zxxup,
-C              rle_lo, Xlo, Zlo, Zxxlo,
-C              Zte, dZte, alpha_te_deg, beta_te_deg)
-C        f2py API entry point.
+C    PARSEC(rle_up, Xup, Zup, Zxxup,
+C           rle_lo, Xlo, Zlo, Zxxlo,
+C           Zte, dZte, alpha_te_deg, beta_te_deg)
+C        Core geometry builder.  Called by the SETPARSEC wrapper in api.f.
 C
-C        Python signature:
+C        Python signature (via SETPARSEC wrapper in api.f):
 C            xf.setparsec(rle_up, Xup, Zup, Zxxup,
 C                         rle_lo, Xlo, Zlo, Zxxlo,
 C                         Zte, dZte, alpha_te_deg, beta_te_deg)
@@ -344,16 +344,16 @@ C
 
 
 C=======================================================================
-      SUBROUTINE SETPARSEC(rle_up, Xup, Zup, Zxxup,
-     &                     rle_lo, Xlo, Zlo, Zxxlo,
-     &                     Zte, dZte, alpha_te_deg, beta_te_deg)
+      SUBROUTINE PARSEC(rle_up, Xup, Zup, Zxxup,
+     &                  rle_lo, Xlo, Zlo, Zxxlo,
+     &                  Zte, dZte, alpha_te_deg, beta_te_deg)
 C-----------------------------------------------
-C     f2py API entry point.
-C
 C     Generates a PARSEC aerofoil from the twelve geometric parameters,
 C     loads the coordinates into the XFOIL buffer arrays XB/YB/NB in
 C     Selig order (TE-upper -> LE -> TE-lower), and calls PANGEN to
 C     create the panelled geometry ready for analysis.
+C
+C     Called from the SETPARSEC wrapper in api.f.
 C
 C     Input: (all lengths normalised to unit chord)
 C       rle_up       upper-surface geometric LE radius
@@ -369,11 +369,6 @@ C       dZte         TE thickness gap  = z_upper - z_lower at x=1 (>= 0)
 C       alpha_te_deg TE direction angle (degrees)
 C       beta_te_deg  TE wedge angle     (degrees)
 C
-C     Python call:
-C       xf.setparsec(rle_up, Xup, Zup, Zxxup,
-C                    rle_lo, Xlo, Zlo, Zxxlo,
-C                    Zte, dZte, alpha_te_deg, beta_te_deg)
-C
 C     Notes:
 C       - XFOIL must be initialised (xf.Initialise()) before calling.
 C       - All dependent solution flags are reset after geometry loading,
@@ -387,10 +382,6 @@ C
       REAL    rle_up, Xup, Zup, Zxxup
       REAL    rle_lo, Xlo, Zlo, Zxxlo
       REAL    Zte, dZte, alpha_te_deg, beta_te_deg
-C
-Cf2py intent(in) :: rle_up, Xup, Zup, Zxxup
-Cf2py intent(in) :: rle_lo, Xlo, Zlo, Zxxlo
-Cf2py intent(in) :: Zte, dZte, alpha_te_deg, beta_te_deg
 C
 C---- number of psi stations used to seed the buffer airfoil.
 C     101 gives smooth curvature for PANGEN to work with.
@@ -414,7 +405,7 @@ C---- solve the two PARSEC 6x6 systems
 C
       IF(SING) THEN
         IF(.NOT.LQUIET)
-     &    WRITE(*,*) 'SETPARSEC: singular 6x6 system -- '//
+     &    WRITE(*,*) 'PARSEC: singular 6x6 system -- '//
      &               'check crest abscissae and LE radii.'
         RETURN
       ENDIF
