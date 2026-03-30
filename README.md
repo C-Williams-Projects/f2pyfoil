@@ -8,7 +8,7 @@ This repository will be exclusively for the development of the Fortran side of t
 # Future Plans (v 1.1)
 - [x] Add boundary layer data retrieval functions
 - [x] Add parameterised airfoil geometry definitions (PARSEC, CST, etc.)
-- [ ] Add Laitone and Prandtl-Glauert compressibility corrections
+- [x] Add Laitone and Prandtl-Glauert compressibility corrections
 
 - [ ] Add support for other analysis routines (Surface-speed (QDES), Inverse (MDES) and Geometry (GDES))
 
