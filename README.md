@@ -8,7 +8,7 @@ This repository will be exclusively for the development of the Fortran side of t
 # Future Plans (v 1.1)
 - [x] Add boundary layer data retrieval functions
 - [x] Add parameterised airfoil geometry definitions (PARSEC, CST, etc.)
-- [ ] Add Laitone and Prandtl-Glauert compressibility corrections
+- [x] Add Laitone and Prandtl-Glauert compressibility corrections
 
 - [ ] Add support for other analysis routines (Surface-speed (QDES), Inverse (MDES) and Geometry (GDES))
 
@@ -32,8 +32,8 @@ The build has been tested on a Windows 11 64-bit system with Pytohn 3.11 and gfo
 
 3. **Python Environment**: It is recommended to use a virtual environment to manage dependencies. You can create and activate a virtual environment using `uv` following its guide. For example in PowerShell you can run the following command to setup the virtual environment with Python 3.11:
    ```
-    uv venv --python 3.11 envname
-    .\envname\Scripts\activate
+    uv venv --python 3.11
+    .venv\Scripts\activate
     uv pip install meson ninja meson-python numpy
    ```
 ## Build Instructions
