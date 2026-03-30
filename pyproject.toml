@@ -1,0 +1,26 @@
+[build-system]
+requires = [
+    "meson-python>=0.15",
+    "meson>=1.1",
+    "ninja",
+    "numpy>=1.21",
+]
+build-backend = "mesonpy"
+
+[project]
+name = "xfoil-wrap"
+version = "0.1.0"
+description = "Python wrapper for the XFOIL aerodynamic solver"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.21"]
+
+[project.optional-dependencies]
+dev = [
+    "meson>=1.1",
+    "ninja",
+    "meson-python>=0.15",
+]
+
+[tool.uv]
+package = false
+
