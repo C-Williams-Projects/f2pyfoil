@@ -68,6 +68,31 @@ C
       END SUBROUTINE NACA_LOAD
 C
 C=======================================================================
+      SUBROUTINE SETCST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
+C---------------------------------------------------
+C     CST airfoil parameterisation entry point.
+C     Builds a CST airfoil, loads the buffer arrays
+C     XB/YB/NB, calls PANGEN, and resets solution flags.
+C
+C     Python signature (NAu and NAl hidden by f2py):
+C         xf.setcst(LEM, TE, Au, Al, N1, N2)
+C---------------------------------------------------
+      INTEGER NAu, NAl
+      REAL    Au(NAu), Al(NAl)
+      REAL    LEM, TE, N1, N2
+Cf2py intent(in) :: LEM, TE
+Cf2py intent(in) :: Au
+Cf2py integer intent(hide),depend(Au) :: NAu = len(Au)
+Cf2py intent(in) :: Al
+Cf2py integer intent(hide),depend(Al) :: NAl = len(Al)
+Cf2py intent(in) :: N1, N2
+C
+      CALL CST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
+C
+      END SUBROUTINE SETCST
+C
+
+C=======================================================================
       SUBROUTINE SETPARSEC(rle_up, Xup, Zup, Zxxup,
      &                     rle_lo, Xlo, Zlo, Zxxlo,
      &                     Zte, dZte, alpha_te_deg, beta_te_deg)
