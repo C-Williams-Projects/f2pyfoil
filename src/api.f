@@ -66,6 +66,42 @@ C     generates buffer airfoil coords and calls PANGEN
       CALL NACA(IDES)
 C
       END SUBROUTINE NACA_LOAD
+C
+C=======================================================================
+      SUBROUTINE SETPARSEC(rle_up, Xup, Zup, Zxxup,
+     &                     rle_lo, Xlo, Zlo, Zxxlo,
+     &                     Zte, dZte, alpha_te_deg, beta_te_deg)
+C---------------------------------------------------
+C     Generates a PARSEC aerofoil from twelve geometric parameters,
+C     loads it into the XFOIL buffer arrays, and panels it.
+C     Wrapper around PARSEC in parsec.f.
+C
+C     Input: (all lengths normalised to unit chord)
+C       rle_up       upper-surface geometric LE radius
+C       Xup          upper crest abscissa  (0 < Xup < 1)
+C       Zup          upper crest ordinate
+C       Zxxup        upper crest curvature (d^2z/dx^2, typically < 0)
+C       rle_lo       lower-surface geometric LE radius
+C       Xlo          lower crest abscissa  (0 < Xlo < 1)
+C       Zlo          lower crest ordinate
+C       Zxxlo        lower crest curvature (typically > 0)
+C       Zte          TE mid-ordinate   = 0.5*(z_upper + z_lower) at x=1
+C       dZte         TE thickness gap  = z_upper - z_lower at x=1 (>= 0)
+C       alpha_te_deg TE direction angle (degrees)
+C       beta_te_deg  TE wedge angle     (degrees)
+C---------------------------------------------------
+      REAL rle_up, Xup, Zup, Zxxup
+      REAL rle_lo, Xlo, Zlo, Zxxlo
+      REAL Zte, dZte, alpha_te_deg, beta_te_deg
+Cf2py intent(in) :: rle_up, Xup, Zup, Zxxup
+Cf2py intent(in) :: rle_lo, Xlo, Zlo, Zxxlo
+Cf2py intent(in) :: Zte, dZte, alpha_te_deg, beta_te_deg
+C
+      CALL PARSEC(rle_up, Xup, Zup, Zxxup,
+     &            rle_lo, Xlo, Zlo, Zxxlo,
+     &            Zte, dZte, alpha_te_deg, beta_te_deg)
+C
+      END SUBROUTINE SETPARSEC
 
 C=======================================================================
       SUBROUTINE SETCON(Re, Ma)
