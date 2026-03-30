@@ -171,6 +171,8 @@ C---- default viscous parameters
       YOCTR(1) = 0.
       YOCTR(2) = 0.
       WAKLEN = 1.0
+
+      ICCOR = 1   ! default: Karman-Tsien (existing behaviour)
 C
 C---- set BL calibration parameters
       CALL BLPINI
@@ -296,25 +298,95 @@ C
       SUBROUTINE COMSET
       INCLUDE 'XFOIL.INC'
 C
-C---- set Karman-Tsien parameter TKLAM
-      BETA = SQRT(1.0 - MINF**2)
+C---- Prandtl-Glauert compressibility factor (common to all corrections)
+      BETA     = SQRT(1.0 - MINF**2)
       BETA_MSQ = -0.5/BETA
 C
-      TKLAM   = MINF**2 / (1.0 + BETA)**2
-      TKL_MSQ =     1.0 / (1.0 + BETA)**2
-     &    - 2.0*TKLAM/ (1.0 + BETA) * BETA_MSQ
+C=========================================================
+C     Set TKLAM and TKL_MSQ.
+C     These are used by the BL solver (xbl.f, GET_BL etc.)
+C     for the velocity <-> Cp back-transformation.
+C=========================================================
 C
-C---- set sonic Pressure coefficient and speed
+      IF(ICCOR .EQ. 0) THEN
+C
+C----   Prandtl-Glauert: linear; velocity ratio equals inviscid ratio
+        TKLAM   = 0.0
+        TKL_MSQ = 0.0
+C
+      ELSE IF(ICCOR .EQ. 1) THEN
+C
+C----   Karman-Tsien (original formulation)
+        TKLAM   = MINF**2 / (1.0 + BETA)**2
+        TKL_MSQ =     1.0 / (1.0 + BETA)**2
+     &      - 2.0*TKLAM / (1.0 + BETA) * BETA_MSQ
+C
+      ELSE
+C
+C----   Laitone: scale KT TKLAM by the adiabatic factor (1 + (g-1)/2 * M^2)
+C       This keeps the BL velocity-transformation structurally consistent
+C       with the Laitone Cp denominator.
+C
+C       d(TKLAM)/d(Minf^2):
+C         FLAIT = 1 + 0.5*GAMM1*Minf^2
+C         d(FLAIT)/d(Minf^2) = 0.5*GAMM1
+C         TKLAM = Minf^2*FLAIT / (1+beta)^2
+C         => TKL_MSQ = (FLAIT + GAMM1*Minf^2) / (1+beta)^2
+C                    - 2*TKLAM/(1+beta)*BETA_MSQ
+C
+        FLAIT   = 1.0 + 0.5*GAMM1*MINF**2
+        TKLAM   = MINF**2 * FLAIT / (1.0 + BETA)**2
+        TKL_MSQ = (FLAIT + GAMM1*MINF**2) / (1.0 + BETA)**2
+     &      - 2.0*TKLAM / (1.0 + BETA) * BETA_MSQ
+C
+      ENDIF
+C
+C=========================================================
+C     Set CPCBFAC and CPCBFQ for CPCALC / CLCALC.
+C     Cp formula:  DEN = BETA + CPCBFAC*CPINC
+C                  CP  = CPINC / DEN
+C=========================================================
+C
+      IF(ICCOR .EQ. 0) THEN
+C
+C----   Prandtl-Glauert: DEN = BETA  (no CPINC dependence)
+        CPCBFAC = 0.0
+        CPCBFQ  = 0.0
+C
+      ELSE IF(ICCOR .EQ. 1) THEN
+C
+C----   Karman-Tsien
+C       BFAC     = 0.5*M^2 / (1+beta)
+C       dBFAC/d(M^2) = 0.5/(1+beta) - BFAC*BETA_MSQ/(1+beta)
+C
+        CPCBFAC = 0.5*MINF**2 / (1.0 + BETA)
+        CPCBFQ  = 0.5 / (1.0 + BETA)
+     &          - CPCBFAC * BETA_MSQ / (1.0 + BETA)
+C
+      ELSE
+C
+C----   Laitone
+C       BFAC     = 0.5*M^2 * (1 + 0.5*(g-1)*M^2) / beta
+C       dBFAC/d(M^2) = (1 + (g-1)*M^2) / (2*beta)
+C                    - BFAC * BETA_MSQ / beta
+C
+        CPCBFAC = 0.5*MINF**2 * (1.0 + 0.5*GAMM1*MINF**2) / BETA
+        CPCBFQ  = (1.0 + GAMM1*MINF**2) / (2.0*BETA)
+     &          - CPCBFAC * BETA_MSQ / BETA
+C
+      ENDIF
+C
+C---- set sonic pressure coefficient and speed (isentropic)
       IF(MINF.EQ.0.0) THEN
        CPSTAR = -999.0
-       QSTAR = 999.0
+       QSTAR  = 999.0
       ELSE
        CPSTAR = 2.0 / (GAMMA*MINF**2)
      &        * (( (1.0 + 0.5*GAMM1*MINF**2)
      &            /(1.0 + 0.5*GAMM1        ))**(GAMMA/GAMM1) - 1.0)
-       QSTAR = QINF/MINF
-     &       * SQRT( (1.0 + 0.5*GAMM1*MINF**2)
-     &              /(1.0 + 0.5*GAMM1        ) )
+       QSTAR  = QINF/MINF
+     &        * SQRT( (1.0 + 0.5*GAMM1*MINF**2)
+     &               /(1.0 + 0.5*GAMM1        ) )
       ENDIF
 C
       RETURN
@@ -323,25 +395,32 @@ C
 
       SUBROUTINE CPCALC(N,Q,QINF,MINF,CP)
 C---------------------------------------------
-C     Sets compressible Cp from speed.
+C     Sets compressible Cp from speed array Q.
+C     Correction type is selected via CPCBFAC
+C     pre-computed in COMSET (see CPCOR.INC).
+C
+C     PG:      DEN = BETA
+C     KT:      DEN = BETA + [M^2/(2(1+beta))]   * CPINC
+C     Laitone: DEN = BETA + [M^2(1+(g-1)/2*M^2)
+C                            /(2*beta)]           * CPINC
 C---------------------------------------------
-      DIMENSION Q(N),CP(N)
+      DIMENSION Q(N), CP(N)
       REAL MINF
       INCLUDE 'QUIET.INC'
+      INCLUDE 'CPCOR.INC'
 C
       LOGICAL DENNEG
 C
-      BETA = SQRT(1.0 - MINF**2)
-      BFAC = 0.5*MINF**2 / (1.0 + BETA)
+      BETA   = SQRT(1.0 - MINF**2)
 C
       DENNEG = .FALSE.
 C
       DO 20 I=1, N
-        CPINC = 1.0 - (Q(I)/QINF)**2
-        DEN = BETA + BFAC*CPINC
-        CP(I) = CPINC / DEN
+        CPINC  = 1.0 - (Q(I)/QINF)**2
+        DEN    = BETA + CPCBFAC*CPINC
+        CP(I)  = CPINC / DEN
         IF(DEN .LE. 0.0) DENNEG = .TRUE.
-  20  CONTINUE
+   20 CONTINUE
 C
       IF(DENNEG .AND. .NOT.LQUIET) THEN
        WRITE(*,*)
@@ -353,58 +432,60 @@ C
       END ! CPCALC
 
  
-      SUBROUTINE CLCALC(N,X,Y,GAM,GAM_A,ALFA,MINF,QINF, 
+      SUBROUTINE CLCALC(N,X,Y,GAM,GAM_A,ALFA,MINF,QINF,
      &                  XREF,YREF,
      &                  CL,CM,CDP, CL_ALF,CL_MSQ)
 C-----------------------------------------------------------
-C     Integrates surface pressures to get CL and CM.
-C     Integrates skin friction to get CDF.
-C     Calculates dCL/dAlpha for prescribed-CL routines.
+C     Integrates surface pressures to get CL, CM, CDP.
+C     Calculates dCL/dAlpha and dCL/d(Minf^2) for Newton.
+C
+C     Compressibility correction coefficients CPCBFAC and
+C     CPCBFQ are set by COMSET (see CPCOR.INC).
 C-----------------------------------------------------------
       DIMENSION X(N),Y(N), GAM(N), GAM_A(N)
       REAL MINF
-C
-ccC---- moment-reference coordinates
-cc      XREF = 0.25
-cc      YREF = 0.
+      INCLUDE 'CPCOR.INC'
 C
       SA = SIN(ALFA)
       CA = COS(ALFA)
 C
-      BETA = SQRT(1.0 - MINF**2)
+      BETA     = SQRT(1.0 - MINF**2)
       BETA_MSQ = -0.5/BETA
 C
-      BFAC     = 0.5*MINF**2 / (1.0 + BETA)
-      BFAC_MSQ = 0.5         / (1.0 + BETA)
-     &         - BFAC        / (1.0 + BETA) * BETA_MSQ
+C---- Cp correction coefficient and its Minf^2 sensitivity.
+C     Previously these were hardcoded for Karman-Tsien only;
+C     now they come from COMSET via CPCOR.INC so that PG,
+C     KT and Laitone are all handled without branching here.
+      BFAC     = CPCBFAC
+      BFAC_MSQ = CPCBFQ
 C
-      CL = 0.0
-      CM = 0.0
-
-      CDP = 0.0
-C
-      CL_ALF = 0.
-      CL_MSQ = 0.
+      CL     = 0.0
+      CM     = 0.0
+      CDP    = 0.0
+      CL_ALF = 0.0
+      CL_MSQ = 0.0
 C
       I = 1
-      CGINC = 1.0 - (GAM(I)/QINF)**2
+      CGINC    = 1.0 - (GAM(I)/QINF)**2
       CPG1     = CGINC/(BETA + BFAC*CGINC)
-      CPG1_MSQ = -CPG1/(BETA + BFAC*CGINC)*(BETA_MSQ + BFAC_MSQ*CGINC)
+      CPG1_MSQ = -CPG1/(BETA + BFAC*CGINC)
+     &           *(BETA_MSQ + BFAC_MSQ*CGINC)
 C
-      CPI_GAM = -2.0*GAM(I)/QINF**2
-      CPC_CPI = (1.0 - BFAC*CPG1)/ (BETA + BFAC*CGINC)
+      CPI_GAM  = -2.0*GAM(I)/QINF**2
+      CPC_CPI  = (1.0 - BFAC*CPG1) / (BETA + BFAC*CGINC)
       CPG1_ALF = CPC_CPI*CPI_GAM*GAM_A(I)
 C
       DO 10 I=1, N
         IP = I+1
         IF(I.EQ.N) IP = 1
 C
-        CGINC = 1.0 - (GAM(IP)/QINF)**2
+        CGINC    = 1.0 - (GAM(IP)/QINF)**2
         CPG2     = CGINC/(BETA + BFAC*CGINC)
-        CPG2_MSQ = -CPG2/(BETA + BFAC*CGINC)*(BETA_MSQ + BFAC_MSQ*CGINC)
+        CPG2_MSQ = -CPG2/(BETA + BFAC*CGINC)
+     &             *(BETA_MSQ + BFAC_MSQ*CGINC)
 C
-        CPI_GAM = -2.0*GAM(IP)/QINF**2
-        CPC_CPI = (1.0 - BFAC*CPG2)/ (BETA + BFAC*CGINC)
+        CPI_GAM  = -2.0*GAM(IP)/QINF**2
+        CPC_CPI  = (1.0 - BFAC*CPG2) / (BETA + BFAC*CGINC)
         CPG2_ALF = CPC_CPI*CPI_GAM*GAM_A(IP)
 C
         DX = (X(IP) - X(I))*CA + (Y(IP) - Y(I))*SA
@@ -416,8 +497,8 @@ C
         AG = 0.5*(CPG2 + CPG1)
 C
         DX_ALF = -(X(IP) - X(I))*SA + (Y(IP) - Y(I))*CA
-        AG_ALF = 0.5*(CPG2_ALF + CPG1_ALF)
-        AG_MSQ = 0.5*(CPG2_MSQ + CPG1_MSQ)
+        AG_ALF =  0.5*(CPG2_ALF + CPG1_ALF)
+        AG_MSQ =  0.5*(CPG2_MSQ + CPG1_MSQ)
 C
         CL     = CL     + DX* AG
         CDP    = CDP    - DY* AG
@@ -427,7 +508,7 @@ C
         CL_ALF = CL_ALF + DX*AG_ALF + AG*DX_ALF
         CL_MSQ = CL_MSQ + DX*AG_MSQ
 C
-        CPG1 = CPG2
+        CPG1     = CPG2
         CPG1_ALF = CPG2_ALF
         CPG1_MSQ = CPG2_MSQ
    10 CONTINUE

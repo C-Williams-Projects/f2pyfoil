@@ -152,7 +152,23 @@ C
       CALL COMSET
 C
       END SUBROUTINE SETCON
-
+C
+C=======================================================================
+      SUBROUTINE SETCOR(icor)
+C---------------------------------------------------
+C     Selects compressibility correction method.
+C     icor = 0  Prandtl-Glauert
+C     icor = 1  Karman-Tsien  (default)
+C     icor = 2  Laitone
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER icor
+Cf2py intent(in) :: icor
+      ICCOR = icor
+      LVCONV = .FALSE.
+      CALL COMSET
+      END SUBROUTINE SETCOR
+C
 C=======================================================================
       SUBROUTINE SETITER(Iter)
 C---------------------------------------------------
@@ -165,7 +181,7 @@ C
       ITMAX = Iter
 C
       END SUBROUTINE SETITER
-
+C
 C=======================================================================
       SUBROUTINE TRPARS(Xtrip1, Xtrip2, Ncrit)
 C---------------------------------------------------

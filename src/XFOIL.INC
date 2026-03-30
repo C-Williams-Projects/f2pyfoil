@@ -37,7 +37,7 @@ C
       LOGICAL LAECEN
       LOGICAL TFORCE
       REAL NX, NY, MASS, MINF1, MINF, MINF_CL, MVISC
-      INTEGER RETYP, MATYP, AIJPIV
+      INTEGER RETYP, MATYP, AIJPIV, ICCOR
       CHARACTER*1 VMXBL
 C
 C---- dimension temporary work and storage arrays (EQUIVALENCED below)
@@ -83,7 +83,7 @@ C
       COMMON/CR11/ PI,HOPI,QOPI,DTOR
       COMMON/CR12/ CVPAR,CTERAT,CTRRAT,XSREF1,XSREF2,XPREF1,XPREF2
       COMMON/CI04/ N,NB,NW,NPAN,IST,
-     &             ITMAX,RETYP,MATYP,AIJPIV(IQX)
+     &             ITMAX,RETYP,MATYP,AIJPIV(IQX),ICCOR
 C---- CR13 (plot sizing) removed -- all variables were plotting-only
       COMMON/CL01/ OK,LIMAGE,SHARP,
      &             LGAMU,LQINU,LVISC,LALFA,LWAKE,
@@ -136,6 +136,8 @@ C---- save storage space
      &            (Q(1,25),W5(1)), (Q(1,31),W6(1)),
      &            (Q(1,37),W7(1)), (Q(1,43),W8(1))
       EQUIVALENCE (VM(1,1,1),BIJ(1,1)), (VM(1,1,IZX/2),CIJ(1,1))
+C   
+      INCLUDE 'CPCOR.INC'
 C
 C
 C   VERSION     version number of this XFOIL implementation
