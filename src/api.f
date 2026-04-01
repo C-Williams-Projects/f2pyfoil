@@ -127,6 +127,7 @@ C
      &            Zte, dZte, alpha_te_deg, beta_te_deg)
 C
       END SUBROUTINE SETPARSEC
+C
 
 C=======================================================================
       SUBROUTINE SETCON(Re, Ma)
@@ -154,7 +155,7 @@ C
       END SUBROUTINE SETCON
 C
 C=======================================================================
-      SUBROUTINE SETCOR(icor)
+      SUBROUTINE SETCCOR(icor)
 C---------------------------------------------------
 C     Selects compressibility correction method.
 C     icor = 0  Prandtl-Glauert
@@ -167,7 +168,7 @@ Cf2py intent(in) :: icor
       ICCOR = icor
       LVCONV = .FALSE.
       CALL COMSET
-      END SUBROUTINE SETCOR
+      END SUBROUTINE SETCCOR
 C
 C=======================================================================
       SUBROUTINE SETITER(Iter)
@@ -705,3 +706,245 @@ C
       ENDIF
 C
       END SUBROUTINE GET_BL
+
+C=======================================================================
+C---- GDES menu wrappers
+C=======================================================================
+
+C=======================================================================
+      SUBROUTINE SETFLAP(Xcloc, Ycloc, DegDef)
+C---------------------------------------------------
+C     Adds a flap to the current airfoil geometry.
+C     Xcloc, Ycloc: hinge point location (normalised to chord)
+C     DegDef: flap deflection angle in degrees (positive deflects trailing edge down)
+C---------------------------------------------------
+      REAL Xcloc, Ycloc, DegDef
+Cf2py intent(in) :: Xcloc, Ycloc, DegDef
+
+      CALL FLAP(Xcloc, Ycloc, DegDef)
+      END SUBROUTINE SETFLAP
+      
+C=======================================================================
+      SUBROUTINE GETGEOINFO(chord_out, area_out, radle_out,
+     &                      angbte_out, thick_out, cambr_out)
+C---------------------------------------------------
+C     Returns the full set of geometric parameters
+C     for the buffer airfoil.
+C     Synchronises buffer and current airfoil via
+C     ABCOPY before querying.
+C
+C     Output: chord_out   chord length
+C             area_out    enclosed area
+C             radle_out   leading-edge radius
+C             angbte_out  trailing-edge included angle (rad)
+C             thick_out   maximum thickness
+C             cambr_out   maximum camber
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL chord_out, area_out, radle_out
+      REAL angbte_out, thick_out, cambr_out
+Cf2py intent(out) :: chord_out, area_out, radle_out
+Cf2py intent(out) :: angbte_out, thick_out, cambr_out
+C
+C---- synchronise current airfoil from buffer
+      CALL ABCOPY(.FALSE.)
+C
+C---- recompute geometry parameters on the buffer airfoil
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+      chord_out  = CHORDB
+      area_out   = AREAB
+      radle_out  = RADBLE
+      angbte_out = ANGBTE
+      thick_out  = THICKB
+      cambr_out  = CAMBRB
+C
+      END SUBROUTINE GETGEOINFO
+
+C=======================================================================
+      SUBROUTINE GETPANANGLE(imax_out, amax_out)
+C---------------------------------------------------
+C     Returns the index and magnitude of the maximum
+C     panel corner angle across the buffer airfoil.
+C     Terminal output is suppressed (IPRINT=0).
+C
+C     Output: imax_out  index of max corner angle point
+C             amax_out  max corner angle (degrees)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER imax_out
+      REAL    amax_out
+Cf2py intent(out) :: imax_out, amax_out
+C
+      CALL CANG(XB,YB,NB, 0, imax_out, amax_out)
+C
+      END SUBROUTINE GETPANANGLE
+
+C=======================================================================
+      SUBROUTINE GETSTRUCT(area_out, slen_out,
+     &                     xc_out, yc_out,
+     &                     aixx_out, aixxt_out,
+     &                     aiyy_out, aiyyt_out,
+     &                     aj_out, ajt_out)
+C---------------------------------------------------
+C     Returns structural cross-section integrals
+C     for the buffer airfoil (GDES BEND command).
+C     Uses power exponent PEX = 16.0 internally.
+C
+C     Output: area_out   enclosed area
+C             slen_out   perimeter length
+C             xc_out     centroid x coordinate
+C             yc_out     centroid y coordinate
+C             aixx_out   solid Ixx (second moment about x)
+C             aixxt_out  skin-weighted Ixx
+C             aiyy_out   solid Iyy (second moment about y)
+C             aiyyt_out  skin-weighted Iyy
+C             aj_out     solid torsional constant
+C             ajt_out    skin torsional constant
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL area_out, slen_out, xc_out, yc_out
+      REAL aixx_out, aixxt_out, aiyy_out, aiyyt_out
+      REAL aj_out, ajt_out
+Cf2py intent(out) :: area_out, slen_out, xc_out, yc_out
+Cf2py intent(out) :: aixx_out, aixxt_out, aiyy_out, aiyyt_out
+Cf2py intent(out) :: aj_out, ajt_out
+C
+      REAL PEX
+      REAL XMIN, XMAX, XEXINT
+      REAL YMIN, YMAX, YEXINT
+C
+      PEX = 16.0
+C
+      CALL IJSECT(NB, XB, YB, PEX,
+     &  area_out, slen_out,
+     &  xc_out, XMIN, XMAX, XEXINT,
+     &  yc_out, YMIN, YMAX, YEXINT,
+     &  aixx_out, aixxt_out,
+     &  aiyy_out, aiyyt_out,
+     &  aj_out, ajt_out)
+C
+      END SUBROUTINE GETSTRUCT
+
+C=======================================================================
+      SUBROUTINE ANGREFINE(atol_in, x1_in, x2_in)
+C---------------------------------------------------
+C     Inserts additional buffer airfoil points where
+C     the panel corner angle exceeds atol_in (degrees),
+C     within the chordwise x-range [x1_in, x2_in].
+C     The buffer is re-splined and geometry parameters
+C     are recomputed internally.
+C
+C     Input: atol_in   angle tolerance (degrees)
+C            x1_in     start of x-range for refinement
+C            x2_in     end of x-range for refinement
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL atol_in, x1_in, x2_in
+Cf2py intent(in) :: atol_in, x1_in, x2_in
+C
+      INTEGER NNEW
+      REAL XNEW(2*IBX), YNEW(2*IBX)
+C
+C---- refine buffer airfoil where angles exceed threshold
+      CALL AREFINE(XB,YB,SB,XBP,YBP,NB, atol_in,
+     &             2*IBX, NNEW, XNEW, YNEW, x1_in, x2_in)
+C
+      IF(NNEW .GT. 0) THEN
+C------ copy refined coordinates back into buffer arrays
+        NB = NNEW
+        DO I = 1, NB
+          XB(I) = XNEW(I)
+          YB(I) = YNEW(I)
+        ENDDO
+C
+C------ re-spline
+        CALL SCALC(XB,YB,SB,NB)
+        CALL SEGSPL(XB,XBP,SB,NB)
+        CALL SEGSPL(YB,YBP,SB,NB)
+C
+C------ recompute geometry parameters
+        CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &              SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &              EI11BA,EI22BA,APX1BA,APX2BA,
+     &              EI11BT,EI22BT,APX1BT,APX2BT,
+     &              THICKB,CAMBRB )
+      ENDIF
+C
+      LGSAME = .FALSE.
+C
+      END SUBROUTINE ANGREFINE
+
+C=======================================================================
+      SUBROUTINE INTERP(X2_in, Y2_in, N2_in, frac_in)
+C---------------------------------------------------
+C     Produces an intermediate buffer airfoil by
+C     blending the current airfoil (source 0) with a
+C     second user-supplied airfoil (source 1) at a
+C     given fraction.
+C       frac_in = 0.0 -> current airfoil
+C       frac_in = 1.0 -> supplied airfoil
+C
+C     The second airfoil is splined internally.
+C     The result replaces the buffer airfoil.
+C
+C     Input: X2_in(N2_in)  x-coords of second airfoil
+C            Y2_in(N2_in)  y-coords of second airfoil
+C            N2_in         number of points
+C            frac_in       blending fraction (0..1)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER N2_in
+      REAL X2_in(N2_in), Y2_in(N2_in)
+      REAL frac_in
+Cf2py intent(in) :: X2_in, Y2_in, N2_in, frac_in
+C
+      REAL X2(IBX), Y2(IBX), XP2(IBX), YP2(IBX), S2(IBX)
+      REAL SLE2
+      REAL XOUT(IBX), YOUT(IBX)
+      INTEGER N2, NOUT, I
+C
+C---- copy second airfoil into local arrays
+      N2 = MIN(N2_in, IBX)
+      DO I = 1, N2
+        X2(I) = X2_in(I)
+        Y2(I) = Y2_in(I)
+      ENDDO
+C
+C---- spline the second airfoil
+      CALL SCALC(X2,Y2,S2,N2)
+      CALL SEGSPL(X2,XP2,S2,N2)
+      CALL SEGSPL(Y2,YP2,S2,N2)
+      CALL LEFIND(SLE2,X2,XP2,Y2,YP2,S2,N2)
+C
+C---- interpolate using the buffer airfoil as source 0
+      CALL INTER(XB,XBP,YB,YBP,SB,NB,SBLE,
+     &           X2,XP2,Y2,YP2,S2,N2,SLE2,
+     &           XOUT,YOUT,NOUT, frac_in)
+C
+C---- copy result into buffer arrays
+      NB = NOUT
+      DO I = 1, NB
+        XB(I) = XOUT(I)
+        YB(I) = YOUT(I)
+      ENDDO
+C
+C---- re-spline buffer
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+C---- recompute geometry parameters
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+      LGSAME = .FALSE.
+C
+      END SUBROUTINE INTERP
