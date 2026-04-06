@@ -1524,6 +1524,15 @@ C-------- set new mass defect (nonlinear update)
           MASS(IBL,IS) = DSTR(IBL,IS) * UEDG(IBL,IS)
 C
    50   CONTINUE
+C
+C------ make sure there are no "islands" of negative Ue
+        DO IBL = 3, IBLTE(IS)
+          IF(UEDG(IBL-1,IS) .GT. 0.0 .AND.
+     &       UEDG(IBL  ,IS) .LE. 0.0       ) THEN
+           UEDG(IBL,IS) = UEDG(IBL-1,IS)
+           MASS(IBL,IS) = DSTR(IBL,IS) * UEDG(IBL,IS)
+          ENDIF
+        ENDDO
     5 CONTINUE
 C
 C
