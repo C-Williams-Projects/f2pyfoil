@@ -63,7 +63,7 @@ def Single(case, tol=1e-6):
         
     N = xf.getn(); NBL = xf.getnbl()
     cp = xf.getcp(N)
-    s, xi, y, ue, dstr, thet, cf, hk, cdis, ctau, hstar, P, m, K  = xf.getbl(NBL)
+    s, xi, y, ue, dstr, thet, cf, hk, hstar, a, b, c, d, e = xf.getbl(NBL)
     x = xi[:N]
     if case['Re'] == 0.0:
         print("Cp Data Summary:")
@@ -81,29 +81,6 @@ def Single(case, tol=1e-6):
         print(f"{'Tolerance Check:':>18} {str(np.allclose(s, ref_s, atol=tol)):>12} {str(np.allclose(x, ref_x, atol=tol)):>12} {str(np.allclose(y, ref_y, atol=tol)):>12} {str(np.allclose(cp, case['Cp'], atol=tol)):>12} {str(np.allclose(ue, case['Ue'], atol=tol)):>12} {str(np.allclose(dstr, case['Dstar'], atol=tol)):>12} {str(np.allclose(thet, case['Theta'], atol=tol)):>12} {str(np.allclose(cf, case['Cf'], atol=tol)):>12}")
     return
 
-def SingleWarmup(case, tol=1e-6):
-    ID = case['Test_ID']
-    Description = Test_Descriptions[str(ID)] 
-    xf.initialise()
-    xf.quiet(True)
-    if case['Airfoil'] == 'DAE-11':
-        xf.airfoil(DAE_11['x'], DAE_11['y'])
-    else:
-        xf.naca_load(case['Airfoil'])
-    xf.repanel(160, 1.0, 0.15, 0.2, 1.0, 1.0, 1.0, 1.0)
-    xf.setcon(case['Re'], case['Ma'])
-    xf.setiter(300)
-    xf.trpars(case['XTR Top'], case['XTR Bot'], case['Ncrit'])
-    if Description == 'Single alpha':
-        cl, cd, cm, xtt, xtb, conv = xf.alpha(case['alpha'])  
-        conv_statment = "Converged" if conv else "Not Converged"
-        print("")
-        print(f"Warmup Test Case {ID}: {Description} - {conv_statment}")
-        print("="*20)  
-        print("f2pyfoil Scalars{:<7}:" f"CL: {cl:.10f}, CD: {cd:.10f}, CM: {cm:.10f}, Xtc Top: {xtt:.10f}, Xtc Bot: {xtb:.10f}")
-        print("XFoil Reference Scalars:" f"CL: {case['CL']:.10f}, CD: {case['CD']:.10f}, CM: {case['CM']:.10f}, Xtc Top: {case['Xtc Top']:.10f}, Xtc Bot: {case['Xtc Bot']:.10f}")
-
-
 def Sequential(case, tol=1e-6):
     ID = case['Test_ID']
     Description = Test_Descriptions[str(ID)] 
@@ -117,16 +94,29 @@ def Sequential(case, tol=1e-6):
     xf.setcon(case['Re'], case['Ma'])
     xf.setiter(300)
     xf.trpars(case['XTR Top'], case['XTR Bot'], case['Ncrit'])
-    if Description == 'Single alpha':
-        cls, cds, cms, xtts, xtbs, convs = xf.aseq(case['alpha_i'], case['alpha_f'], case['alpha_step'])
+    if Description == 'Alpha Sequence':
+        alfas, cls, cds, cms, xtts, xtbs, convs = xf.aseq(case['alpha_i'], case['alpha_f'], (case['alpha_f'] - case['alpha_i']) / case['alpha_step'] + 1)
         total_converged = sum(convs)
+        uncon_a = np.array([x for x in alfas if not np.any(np.isclose(x, case['alphas']))])
+        uncon_idx = np.array([np.where(np.isclose(alfas, x))[0][0] for x in uncon_a])
+        print(uncon_idx)
+        for i in range(len(uncon_idx)):
+            if convs[uncon_idx[i]] != 0:
+                print("Converged where reference data did not converge at alpha =", uncon_a[i])
+            else:
+                continue
+        cl = np.delete(cls, uncon_idx)
+        cd = np.delete(cds, uncon_idx)
+        cm = np.delete(cms, uncon_idx)
+        xtt = np.delete(xtts, uncon_idx)
+        xtb = np.delete(xtbs, uncon_idx)
         print("")
         print(f"Test Case {ID}: {Description} - {total_converged}/{len(convs)} Converged")
         print("="*20)
         print(f"{'CL':>10} {'CD':>10} {'CM':>10} {'Xtc Top':>10} {'Xtc Bot':>10}")
-        print("Max Difference:", f"{np.max(np.abs(cls - case['CLs'])):>10.5e} {np.max(np.abs(cds - case['CDs'])):>10.5e} {np.max(np.abs(cms - case['CMs'])):>10.5e} {np.max(np.abs(xtts - case['Xtc Tops'])):>10.5e} {np.max(np.abs(xtbs - case['Xtc Bots'])):>10.5e}")
-        print("Mean Difference:", f"{np.mean(np.abs(cls - case['CLs'])):>10.5e} {np.mean(np.abs(cds - case['CDs'])):>10.5e} {np.mean(np.abs(cms - case['CMs'])):>10.5e} {np.mean(np.abs(xtts - case['Xtc Tops'])):>10.5e} {np.mean(np.abs(xtbs - case['Xtc Bots'])):>10.5e}")
-        print("Tolerance Check:", np.allclose(cls, case['CLs'], atol=tol), np.allclose(cds, case['CDs'], atol=tol), np.allclose(cms, case['CMs'], atol=tol), np.allclose(xtts, case['Xtc Tops'], atol=tol), np.allclose(xtbs, case['Xtc Bots'], atol=tol))
+        print("Max Difference:", f"{np.max(np.abs(cl - case['CLs'])):>10.5e} {np.max(np.abs(cd - case['CDs'])):>10.5e} {np.max(np.abs(cm - case['CMs'])):>10.5e} {np.max(np.abs(xtt - case['Xtc Tops'])):>10.5e} {np.max(np.abs(xtb - case['Xtc Bots'])):>10.5e}")
+        print("Mean Difference:", f"{np.mean(np.abs(cl - case['CLs'])):>10.5e} {np.mean(np.abs(cd - case['CDs'])):>10.5e} {np.mean(np.abs(cm - case['CMs'])):>10.5e} {np.mean(np.abs(xtt - case['Xtc Tops'])):>10.5e} {np.mean(np.abs(xtb - case['Xtc Bots'])):>10.5e}")
+        print("Tolerance Check:", np.allclose(cl, case['CLs'], atol=tol), np.allclose(cd, case['CDs'], atol=tol), np.allclose(cm, case['CMs'], atol=tol), np.allclose(xtt, case['Xtc Tops'], atol=tol), np.allclose(xtb, case['Xtc Bots'], atol=tol))
 
     else:
         alphas, cds, cms, xtts, xtbs, convs = xf.cseq(case['cl_i'], case['cl_f'], case['cl_step'])
@@ -195,7 +185,7 @@ def Consecutive(case, tol=1e-6):
  
     N = xf.getn(); NBL = xf.getnbl()
     cp = xf.getcp(N)
-    s, xi, y, ue, dstr, thet, cf, hk, cdis, ctau, hstar, P, m, K  = xf.getbl(NBL)
+    s, xi, y, ue, dstr, thet, cf, hk, hstar, a, b, c, d, e  = xf.getbl(NBL)
     x = xi[:N]
     if case['Re'] == 0.0:
         print("Cp Data Summary:")
@@ -212,8 +202,9 @@ def Consecutive(case, tol=1e-6):
         print(f"{'Mean Difference:':>18} {np.mean(np.abs(s - ref_s)):>12.5e} {np.mean(np.abs(x - ref_x)):>12.5e} {np.mean(np.abs(y - ref_y)):>12.5e} {np.mean(np.abs(cp - case['Cp'])):>12.5e} {np.mean(np.abs(ue - case['Ue'])):>12.5e} {np.mean(np.abs(dstr - case['Dstar'])):>12.5e} {np.mean(np.abs(thet - case['Theta'])):>12.5e} {np.mean(np.abs(cf - case['Cf'])):>12.5e}")
         print(f"{'Tolerance Check:':>18} {str(np.allclose(s, ref_s, atol=tol)):>12} {str(np.allclose(x, ref_x, atol=tol)):>12} {str(np.allclose(y, ref_y, atol=tol)):>12} {str(np.allclose(cp, case['Cp'], atol=tol)):>12} {str(np.allclose(ue, case['Ue'], atol=tol)):>12} {str(np.allclose(dstr, case['Dstar'], atol=tol)):>12} {str(np.allclose(thet, case['Theta'], atol=tol)):>12} {str(np.allclose(cf, case['Cf'], atol=tol)):>12}")
 
-Single(Test_0)
-Single(Test_1)
-Single(Test_2)
-Single(Test_3)
-Single(Test_4)
+#Single(Test_0)
+#Single(Test_1)
+#Single(Test_2)
+#Single(Test_3)
+#Single(Test_4)
+Sequential(Test_5)

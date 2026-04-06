@@ -28,7 +28,7 @@ Test_Descriptions = {
     '2' : "Single alpha",
     '3' : "Single alpha",
     '4' : "Single alpha",
-    '5' : "Alpha sequence",
+    '5' : "Alpha Sequence",
     '6' : "Single alpha",
     '7' : "Alpha Sequence",
     '8' : "CL Sequence",

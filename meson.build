@@ -44,7 +44,7 @@ py.extension_module('xfoil',
     ],
     include_directories: include_directories('src'),
     c_args: ['-I' + incdir_numpy, '-I' + incdir_f2py],
-    fortran_args: ['-static', '-O', '-fdefault-real-8', '-finit-real=zero'],
+    fortran_args: ['-static', '-O', '-fdefault-real-8'],
     link_args: ['-static', '-lgfortran', '-lquadmath', '-lm'],
     install: true,
 )
