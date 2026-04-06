@@ -502,4 +502,398 @@ C
       END ! GETXYF
 
 
+       SUBROUTINE ROTATE(X,Y,N,ALFA)
+      DIMENSION X(N), Y(N)
+C
+      SA = SIN(ALFA)
+      CA = COS(ALFA)
+CCC      XOFF = 0.25*(1.0-CA)
+CCC      YOFF = 0.25*SA
+      XOFF = 0.
+      YOFF = 0.
+      DO 8 I=1, N
+        XT = X(I)
+        YT = Y(I)
+        X(I) = CA*XT + SA*YT + XOFF
+        Y(I) = CA*YT - SA*XT + YOFF
+    8 CONTINUE
+C
+      RETURN
+      END
 
+      SUBROUTINE TGAP(GAPNEW, DOC)
+C----------------------------------
+C     Used to set buffer airfoil
+C     trailing edge gap.
+C
+C     Input:
+C       GAPNEW   desired new TE gap
+C       DOC      blending distance/c (0..1)
+C----------------------------------
+      INCLUDE 'XFOIL.INC'
+C
+      CALL LEFIND(SBLE,XB,XBP,YB,YBP,SB,NB)
+      XBLE = SEVAL(SBLE,XB,XBP,SB,NB)
+      YBLE = SEVAL(SBLE,YB,YBP,SB,NB)
+      XBTE = 0.5*(XB(1)+XB(NB))
+      YBTE = 0.5*(YB(1)+YB(NB))
+      CHBSQ = (XBTE-XBLE)**2 + (YBTE-YBLE)**2
+C
+      DXN = XB(1) - XB(NB)
+      DYN = YB(1) - YB(NB)
+      GAP = SQRT(DXN**2 + DYN**2)
+C
+      IF(.NOT.LQUIET) WRITE(*,1000) GAP
+ 1000 FORMAT(/' Current gap =',F9.5)
+C
+C---- components of unit vector parallel to TE gap
+      IF(GAP.GT.0.0) THEN
+       DXU = DXN / GAP
+       DYU = DYN / GAP
+      ELSE
+       DXU = -.5*(YBP(NB) - YBP(1))
+       DYU = 0.5*(XBP(NB) - XBP(1))
+      ENDIF
+C
+      DOC = MIN( MAX( DOC , 0.0 ) , 1.0 )
+C
+      DGAP = GAPNEW - GAP
+C
+C---- go over each point, changing the y-thickness appropriately
+      DO 30 I=1, NB
+C
+C------ chord-based x/c
+        XOC = (  (XB(I)-XBLE)*(XBTE-XBLE)
+     &         + (YB(I)-YBLE)*(YBTE-YBLE) ) / CHBSQ
+C
+C------ thickness factor tails off exponentially away from trailing edge
+        IF(DOC .EQ. 0.0) THEN
+          TFAC = 0.0
+          IF(I.EQ.1 .OR. I.EQ.NB) TFAC = 1.0
+        ELSE
+          ARG = MIN( (1.0-XOC)*(1.0/DOC-1.0) , 15.0 )
+          TFAC = EXP(-ARG)
+        ENDIF
+C
+        IF(SB(I).LE.SBLE) THEN
+         XB(I) = XB(I) + 0.5*DGAP*XOC*TFAC*DXU
+         YB(I) = YB(I) + 0.5*DGAP*XOC*TFAC*DYU
+        ELSE
+         XB(I) = XB(I) - 0.5*DGAP*XOC*TFAC*DXU
+         YB(I) = YB(I) - 0.5*DGAP*XOC*TFAC*DYU
+        ENDIF
+   30 CONTINUE
+      LGSAME = .FALSE.
+C
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+      RETURN
+      END ! TGAP
+
+      SUBROUTINE LERAD(RFAC, DOC)
+C----------------------------
+C     Changes buffer airfoil
+C     leading edge radius.
+C
+C     Input:
+C       RFAC   approx. new/old LE radius scaling ratio
+C       DOC    blending distance/c from LE (>= 0.001)
+C----------------------------
+      INCLUDE 'XFOIL.INC'
+C
+      DOC = MAX( DOC , 0.001 )
+C
+      CALL LERSCL(XB,XBP,YB,YBP,SB,NB, DOC,RFAC, W1,W2)
+C
+      DO 40 I=1, NB
+        XB(I) = W1(I)
+        YB(I) = W2(I)
+   40 CONTINUE
+      LGSAME = .FALSE.
+C
+C---- spline new coordinates
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+C---- find max curvature
+      CVMAX = 0.
+      DO 6 I=NB/4, (3*NB)/4
+        CV = CURV(SB(I),XB,XBP,YB,YBP,SB,NB)
+        CVMAX = MAX( ABS(CV) , CVMAX )
+    6 CONTINUE
+C
+      RADIUS = 1.0/CVMAX
+C
+      IF(.NOT.LQUIET) WRITE(*,1000) RADIUS
+ 1000 FORMAT(/' New LE radius = ',F7.5)
+C
+      RETURN
+      END ! LERAD
+
+      SUBROUTINE TCSET(TNEW, CNEW)
+C------------------------------------------------------
+C     Sets the buffer airfoil to a specified maximum
+C     thickness and/or camber value.
+C
+C     Input:
+C       TNEW   new max thickness (use 999.0 to skip)
+C       CNEW   new max camber    (use 999.0 to skip)
+C------------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+C
+C--- find the current buffer airfoil camber and thickness
+      CALL GETCAM(XCM,YCM,NCM,XTK,YTK,NTK,
+     &            XB,XBP,YB,YBP,SB,NB )
+      CALL GETMAX(XCM,YCM,YCMP,NCM,CXMAX,CYMAX)
+      CALL GETMAX(XTK,YTK,YTKP,NTK,TXMAX,TYMAX)
+C
+      IF(.NOT.LQUIET) WRITE(*,1000) 2.0*TYMAX,TXMAX, CYMAX,CXMAX
+ 1000 FORMAT(/' Max thickness = ',F8.4,'  at x = ',F7.3,
+     &       /' Max camber    = ',F8.4,'  at x = ',F7.3/)
+C
+      CFAC = 1.0
+      TFAC = 1.0
+      IF(CYMAX.NE.0.0 .AND. CNEW.NE.999.0) CFAC = CNEW / (    CYMAX)
+      IF(TYMAX.NE.0.0 .AND. TNEW.NE.999.0) TFAC = TNEW / (2.0*TYMAX)
+C
+C---- sanity check on scaling factors
+      IF(.NOT.LQUIET) THEN
+        IF(ABS(TFAC) .GT. 100.0 .OR. ABS(CFAC) .GT. 100.0) THEN
+          WRITE(*,1100) TFAC, CFAC
+ 1100     FORMAT(/' Warning: questionable input...'
+     &           /' Implied scaling factors are:', F13.2,' x thickness'
+     &           /'                             ', F13.2,' x camber   ')
+        ENDIF
+      ENDIF
+C
+      CALL THKCAM(TFAC,CFAC)
+C
+      RETURN
+      END ! TCSET
+
+      SUBROUTINE THKCAM(TFAC,CFAC)
+C---------------------------------------------------
+C     Changes buffer airfoil thickness and camber
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+C
+      CALL LEFIND(SBLE,XB,XBP,YB,YBP,SB,NB)
+C
+C---This fails miserably with sharp LE foils, tsk,tsk,tsk HHY 4/24/01
+C---- set baseline vector normal to surface at LE point
+c      DXC = -DEVAL(SBLE,YB,YBP,SB,NB)
+c      DYC =  DEVAL(SBLE,XB,XBP,SB,NB)
+c      DSC = SQRT(DXC**2 + DYC**2)
+c      DXC = DXC/DSC
+c      DYC = DYC/DSC
+C
+C---Rational alternative 4/24/01 HHY
+      XLE = SEVAL(SBLE,XB,XBP,SB,NB)
+      YLE = SEVAL(SBLE,YB,YBP,SB,NB)
+      XTE = 0.5*(XB(1)+XB(NB))
+      YTE = 0.5*(YB(1)+YB(NB))
+      CHORD = SQRT((XTE-XLE)**2 + (YTE-YLE)**2)
+C---- set unit chord-line vector
+      DXC = (XTE-XLE) / CHORD
+      DYC = (YTE-YLE) / CHORD
+C
+C---- go over each point, changing the y-thickness appropriately
+      DO I=1, NB
+C------ coordinates of point on the opposite side with the same x value
+        CALL SOPPS(SBOPP, SB(I),XB,XBP,YB,YBP,SB,NB,SBLE)
+        XBOPP = SEVAL(SBOPP,XB,XBP,SB,NB)
+        YBOPP = SEVAL(SBOPP,YB,YBP,SB,NB)
+C
+C------ set new y coordinate by changing camber & thickness appropriately
+        XCAVG =        ( 0.5*(XB(I)+XBOPP)*DXC + 0.5*(YB(I)+YBOPP)*DYC )
+        YCAVG = CFAC * ( 0.5*(YB(I)+YBOPP)*DXC - 0.5*(XB(I)+XBOPP)*DYC )
+
+        XCDEL =        ( 0.5*(XB(I)-XBOPP)*DXC + 0.5*(YB(I)-YBOPP)*DYC )
+        YCDEL = TFAC * ( 0.5*(YB(I)-YBOPP)*DXC - 0.5*(XB(I)-XBOPP)*DYC )
+C
+        W1(I) = (XCAVG+XCDEL)*DXC - (YCAVG+YCDEL)*DYC
+        W2(I) = (YCAVG+YCDEL)*DXC + (XCAVG+XCDEL)*DYC
+      ENDDO
+C
+      DO I=1, NB
+        XB(I) = W1(I)
+        YB(I) = W2(I)
+      ENDDO
+      LGSAME = .FALSE.
+C
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+      RETURN
+      END ! THKCAM
+
+
+
+      SUBROUTINE HIPNT(THPNT, CHPNT)
+C------------------------------------------------------
+C     Changes buffer airfoil
+C     thickness and/or camber highpoint.
+C
+C     Input:
+C       THPNT  new thickness highpoint x location
+C              (use 0.0 to keep current)
+C       CHPNT  new camber highpoint x location
+C              (use 0.0 to keep current)
+C------------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL XFN(5), YFN(5), YFNP(5), SFN(5)
+C
+C--- Check chordline direction (should be unrotated for camber routines)
+C    to function correctly
+      XLE = SEVAL(SBLE,XB,XBP,SB,NB)
+      YLE = SEVAL(SBLE,YB,YBP,SB,NB)
+      XTE = 0.5*(XB(1)+XB(NB))
+      YTE = 0.5*(YB(1)+YB(NB))
+      AROT = ATAN2(YLE-YTE,XTE-XLE) / DTOR
+      IF(ABS(AROT).GT.1.0 .AND. .NOT.LQUIET) THEN
+        WRITE(*,*) ' '
+        WRITE(*,*) 'Warning: HIGH does not work well on rotated foils'
+        WRITE(*,*) 'Current chordline angle: ',AROT
+        WRITE(*,*) 'Proceeding anyway...'
+      ENDIF
+C
+C---- find leftmost point location
+      CALL XLFIND(SBL,XB,XBP,YB,YBP,SB,NB)
+      XBL = SEVAL(SBL,XB,XBP,SB,NB)
+      YBL = SEVAL(SBL,YB,YBP,SB,NB)
+C
+C---- find the current buffer airfoil camber and thickness
+      CALL GETCAM(XCM,YCM,NCM,XTK,YTK,NTK,
+     &            XB,XBP,YB,YBP,SB,NB )
+C
+C---- find the max thickness and camber
+      CALL GETMAX(XCM,YCM,YCMP,NCM,CXMAX,CYMAX)
+      CALL GETMAX(XTK,YTK,YTKP,NTK,TXMAX,TYMAX)
+C
+      IF(.NOT.LQUIET) WRITE(*,1010) 2.0*TYMAX,TXMAX, CYMAX,CXMAX
+ 1010 FORMAT(/' Max thickness = ',F8.4,'  at x = ',F7.3,
+     &       /' Max camber    = ',F8.4,'  at x = ',F7.3/)
+C
+      IF (THPNT.LE.0.0) THPNT = TXMAX
+      IF (CHPNT.LE.0.0) CHPNT = CXMAX
+C
+C--- a simple cubic mapping function is used to map x/c to move highpoints
+C
+C    the assumption is that a smooth function (cubic, given by the old and
+C    new highpoint locations) maps the range 0-1 for x/c
+C    into the range 0-1 for altered x/c distribution for the same y/c
+C    thickness or camber (ie. slide the points smoothly along the x axis)
+C
+C--- shift thickness highpoint
+      IF (THPNT .GT. 0.0) THEN
+       XFN(1) = XTK(1)
+       XFN(2) = TXMAX
+       XFN(3) = XTK(NTK)
+       YFN(1) = XTK(1)
+       YFN(2) = THPNT
+       YFN(3) = XTK(NTK)
+       CALL SPLINA(YFN,YFNP,XFN,3)
+       DO I = 1, NTK
+         XTK(I) = SEVAL(XTK(I),YFN,YFNP,XFN,3)
+       ENDDO
+      ENDIF
+C
+C--- shift camber highpoint
+      IF (CHPNT .GT. 0.0) THEN
+       XFN(1) = XCM(1)
+       XFN(2) = CXMAX
+       XFN(3) = XCM(NCM)
+       YFN(1) = XCM(1)
+       YFN(2) = CHPNT
+       YFN(3) = XCM(NCM)
+       CALL SPLINA(YFN,YFNP,XFN,3)
+       DO I = 1, NCM
+         XCM(I) = SEVAL(XCM(I),YFN,YFNP,XFN,3)
+       ENDDO
+      ENDIF
+C
+C---- Make new airfoil from thickness and camber
+C     new airfoil points are spaced to match the original
+C--- HHY 4/24/01 got rid of splining vs X,Y vs S (buggy), now spline Y(X)
+      CALL SEGSPL(YTK,YTKP,XTK,NTK)
+      CALL SEGSPL(YCM,YCMP,XCM,NCM)
+C
+C
+C---- for each orig. airfoil point setup new YB from camber and thickness
+      DO 40 I=1, NB
+C
+C------ spline camber and thickness at original xb points
+        YCC = SEVAL(XB(I),YCM,YCMP,XCM,NCM)
+        YTT = SEVAL(XB(I),YTK,YTKP,XTK,NTK)
+C
+C------ set new y coordinate from new camber & thickness
+        IF (SB(I) .LE. SBL) THEN
+          YB(I) = YCC + YTT
+         ELSE
+          YB(I) = YCC - YTT
+        ENDIF
+C---- Add Y-offset for original leftmost (LE) point to camber
+        YB(I) = YB(I) + YBL
+   40 CONTINUE
+      LGSAME = .FALSE.
+C
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+      RETURN
+      END ! HIPNT
+
+      SUBROUTINE TCSCAL(TFAC, CFAC)
+C------------------------------------------------------
+C     Scales buffer airfoil thickness and camber
+C     by independent factors.
+C
+C     Input:
+C       TFAC   new/old thickness scale factor
+C       CFAC   new/old camber    scale factor
+C------------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+C
+C--- find the current buffer airfoil camber and thickness
+      CALL GETCAM(XCM,YCM,NCM,XTK,YTK,NTK,
+     &            XB,XBP,YB,YBP,SB,NB )
+      CALL GETMAX(XCM,YCM,YCMP,NCM,CXMAX,CYMAX)
+      CALL GETMAX(XTK,YTK,YTKP,NTK,TXMAX,TYMAX)
+C
+      IF(.NOT.LQUIET) WRITE(*,1000) 2.0*TYMAX,TXMAX, CYMAX,CXMAX
+ 1000 FORMAT(/' Max thickness = ',F8.4,'  at x = ',F7.3,
+     &       /' Max camber    = ',F8.4,'  at x = ',F7.3/)
+C
+      CALL THKCAM(TFAC,CFAC)
+C
+      RETURN
+      END ! TCSCAL

@@ -1444,11 +1444,151 @@ C
       END ! INSIDE
 
 
+      SUBROUTINE GETCAM (XCM,YCM,NCM,XTK,YTK,NTK,
+     &                   X,XP,Y,YP,S,N )
+C------------------------------------------------------
+C     Finds camber and thickness
+C     distribution for input airfoil
+C------------------------------------------------------
+      REAL XCM(*), YCM(*)
+      REAL XTK(*), YTK(*)
+      REAL X(*),XP(*),Y(*),YP(*),S(*)
+C
+      CALL XLFIND(SL,X,XP,Y,YP,S,N)
+      XL = SEVAL(SL,X,XP,S,N)
+      YL = SEVAL(SL,Y,YP,S,N)
+C
+C---- go over each point, finding opposite points, getting camber and thickness
+      DO 10 I=1, N
+C------ coordinates of point on the opposite side with the same x value
+        CALL SOPPS(SOPP, S(I), X,XP,Y,YP,S,N,SL)
+        XOPP = SEVAL(SOPP,X,XP,S,N)
+        YOPP = SEVAL(SOPP,Y,YP,S,N)
+C
+C------ get camber and thickness
+        XCM(I) = 0.5*(X(I)+XOPP)
+        YCM(I) = 0.5*(Y(I)+YOPP)
+        XTK(I) = 0.5*(X(I)+XOPP)
+        YTK(I) = 0.5*(Y(I)-YOPP)
+        YTK(I) = ABS(YTK(I))
+   10 CONTINUE
+C
+C---- Tolerance for nominally identical points
+      TOL = 1.0E-5 * (S(N)-S(1))
+C
+C---- Sort the camber points
+      NCM = N+1
+      XCM(N+1) = XL
+      YCM(N+1) = YL
+      CALL SORTOL(TOL,NCM,XCM,YCM)
+C
+C--- Reorigin camber from LE so camberlines start at Y=0  4/24/01 HHY
+C    policy now to generate camber independent of Y-offsets
+      YOF = YCM(1)
+      DO I = 1, NCM
+        YCM(I) = YCM(I) - YOF
+      END DO
+C
+C---- Sort the thickness points
+      NTK = N+1
+      XTK(N+1) = XL
+      YTK(N+1) = 0.0
+      CALL SORTOL(TOL,NTK,XTK,YTK)
+C
+      RETURN
+      END ! GETCAM
 
 
+      SUBROUTINE GETMAX(X,Y,YP,N,XMAX,YMAX)
+      REAL X(*), Y(*), YP(*)
+C------------------------------------------------
+C     Calculates camber or thickness highpoint
+C     and x position
+C------------------------------------------------
+C
+      XLEN = X(N) - X(1)
+      XTOL = XLEN * 1.0E-5
+C
+      CALL SEGSPL(Y,YP,X,N)
+C
+C---- get approx max point and rough interval size
+      YMAX0 = Y(1)
+      XMAX0 = X(1)
+      DO 5 I = 2, N
+        IF (ABS(Y(I)).GT.ABS(YMAX0)) THEN
+          YMAX0 = Y(I)
+          XMAX0 = 0.5*(X(I-1) + X(I))
+          DDX = 0.5*ABS(X(I+1) - X(I-1))
+        ENDIF
+ 5    CONTINUE
+      XMAX = XMAX0
+C
+C---- do a Newton loop to refine estimate
+      DO 10 ITER=1, 10
+        YMAX  = SEVAL(XMAX,Y,YP,X,N)
+        RES   = DEVAL(XMAX,Y,YP,X,N)
+        RESP  = D2VAL(XMAX,Y,YP,X,N)
+        IF (ABS(XLEN*RESP) .LT. 1.0E-6) GO TO 20
+          DX = -RES/RESP
+          DX = SIGN( MIN(0.5*DDX,ABS(DX)) , DX)
+          XMAX = XMAX + DX
+          IF(ABS(DX) .LT. XTOL) GO TO 20
+   10 CONTINUE
+      WRITE(*,*)
+     &  'GETMAX: Newton iteration for max camber/thickness failed.'
+      YMAX = YMAX0
+      XMAX = XMAX0
+C
+ 20   RETURN
+      END ! GETMAX
 
 
-
+      SUBROUTINE SORTOL(TOL,KK,S,W)
+      DIMENSION S(KK), W(KK)
+      LOGICAL DONE
+C
+C---- sort arrays
+      DO IPASS=1, 1234
+        DONE = .TRUE.
+        DO N=1, KK-1
+          NP = N+1
+          IF(S(NP).LT.S(N)) THEN
+           TEMP = S(NP)
+           S(NP) = S(N)
+           S(N) = TEMP
+           TEMP = W(NP)
+           W(NP) = W(N)
+           W(N) = TEMP
+           DONE = .FALSE.
+          ENDIF
+        END DO
+        IF(DONE) GO TO 10
+      END DO
+      WRITE(*,*) 'Sort failed'
+C
+C---- search for near-duplicate pairs and eliminate extra points
+C---- Modified 4/24/01 HHY to check list until ALL duplicates removed
+C     This cures a bug for sharp LE foils where there were 3 LE points in
+C     camber, thickness lists from GETCAM.
+C
+ 10   KKS = KK
+      DONE = .TRUE.
+      DO 20 K=1, KKS
+        IF(K.GE.KK) GO TO 20
+        DSQ = (S(K)-S(K+1))**2 + (W(K)-W(K+1))**2
+        IF(DSQ.GE.TOL*TOL) GO TO 20
+C------- eliminate extra point pairs
+         KK = KK-1
+         DO KT=K+1, KK
+           S(KT) = S(KT+1)
+           W(KT) = W(KT+1)
+         END DO
+         DONE = .FALSE.
+   20 CONTINUE
+      IF(.NOT.DONE) GO TO 10
+C
+      RETURN
+      END ! SORTOL
 
 
 
