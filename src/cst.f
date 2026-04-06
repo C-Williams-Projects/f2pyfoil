@@ -226,7 +226,6 @@ C     Must be <= IBX/2  (IBX = 2*IQX = 1000 by default).
 C
       REAL    PSI(NPSI), YU(NPSI), YL(NPSI)
       INTEGER I, IB
-      REAL    PI
 C
       PI = 4.0 * ATAN(1.0)
 C

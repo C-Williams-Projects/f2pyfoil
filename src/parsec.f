@@ -392,7 +392,6 @@ C
       REAL    a_up(6), a_lo(6)
       LOGICAL SING
       INTEGER I, IB
-      REAL    PI
 C
       PI = 4.0 * ATAN(1.0)
 C
