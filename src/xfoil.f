@@ -174,11 +174,14 @@ C---- default viscous parameters
 
       ICCOR = 1   ! default: Karman-Tsien (existing behaviour)
 C
+C---- default amplification-rate method (0 = original DAMPL envelope)
+      CALL IDAMP_SET(0)
+C
 C---- set BL calibration parameters
       CALL BLPINI
 C
 C---- Newton iteration limit
-      ITMAX = 10
+      ITMAX = 20
 C
 C
 C---- drop tolerance for BL system solver
@@ -717,7 +720,7 @@ C
      &            EI11BT,EI22BT,APX1BT,APX2BT,
      &            THICKB,CAMBRB )
 C
-C      WRITE(*,1200) NB
+      IF(.NOT.LQUIET) WRITE(*,1200) NB
  1200 FORMAT(/' Buffer airfoil set using', I4,' points')
 C
 C---- set paneling
@@ -750,6 +753,7 @@ C
 C---- Number of temporary nodes for panel distribution calculation
 C       exceeds the specified panel number by factor of IPFAC.
       IPFAC = 3
+      IPFAC = 5
 C
 C---- number of airfoil panel points
       N = NPAN
@@ -946,7 +950,7 @@ C     temporarily used  for more reliable convergence.
 C
 C---- ratio of lengths of panel at TE to one away from the TE
       RDSTE = 0.667
-      RTF = (RDSTE-1.0)*FLOAT(IPFAC) + 1.0
+      RTF = (RDSTE-1.0)*2.0 + 1.0
 C
       IF(IBLE.EQ.0) THEN
 C
@@ -1216,8 +1220,9 @@ C
       ENDIF
  1090 FORMAT(/1X,A,F9.5)
 C
-C      IF(SHOPAR) WRITE(*,1100) NPAN, CVPAR, CTERAT, CTRRAT,
-C     &                         XSREF1, XSREF2, XPREF1, XPREF2
+      IF(SHOPAR .AND. .NOT.LQUIET) WRITE(*,1100) 
+     &      NPAN, CVPAR, CTERAT, CTRRAT,
+     &      XSREF1, XSREF2, XPREF1, XPREF2
  1100 FORMAT(/' Paneling parameters used...'
      &       /'   Number of panel nodes      ' , I4
      &       /'   Panel bunching parameter   ' , F6.3

@@ -1273,7 +1273,7 @@ C
       IF(.NOT.LQUIET) WRITE(*,*) 'Calculating wake trajectory ...'
 C
 C---- number of wake points
-      NW = N/8 + 2
+      NW = N/12 + 10*INT(WAKLEN)
       IF(NW.GT.IWX) THEN
        IF(.NOT.LQUIET) WRITE(*,*)
      &  'Array size (IWX) too small.  Last wake point index reduced.'
