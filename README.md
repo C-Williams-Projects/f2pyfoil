@@ -9,8 +9,9 @@ This repository will be exclusively for the development of the Fortran side of t
 - [x] Add boundary layer data retrieval functions
 - [x] Add parameterised airfoil geometry definitions (PARSEC, CST, etc.)
 - [x] Add Laitone and Prandtl-Glauert compressibility corrections
-
-- [ ] Add support for other analysis routines (Surface-speed (QDES), Inverse (MDES) and Geometry (GDES))
+- [x] Update to double precision with f2py compatibility
+- [x] Add GDES subroutines
+- [ ] Add support for other analysis routines Surface-speed (QDES), Complex Mapping (MDES)
 
 
 # f2pyfoil build guide
