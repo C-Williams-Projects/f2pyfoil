@@ -15,5 +15,5 @@ C     Laitone (2)    0.5*Minf^2 * (1 + 0.5*(gamma-1)*Minf^2) / beta
 C
 C     CPCBFQ  = d(CPCBFAC)/d(Minf^2)   -- used in CLCALC sensitivities
 C
-      REAL CPCBFAC, CPCBFQ
+      REAL*8 CPCBFAC, CPCBFQ
       COMMON /CPCORR/ CPCBFAC, CPCBFQ

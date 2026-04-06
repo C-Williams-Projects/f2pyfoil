@@ -44,12 +44,12 @@ py.extension_module('xfoil',
     ],
     include_directories: include_directories('src'),
     c_args: ['-I' + incdir_numpy, '-I' + incdir_f2py],
-    fortran_args: ['-static', '-O2'],
+    fortran_args: ['-static', '-O', '-fdefault-real-8', '-finit-real=zero'],
     link_args: ['-static', '-lgfortran', '-lquadmath', '-lm'],
     install: true,
 )
 
 install_data(
-    ['src/osmap.dat', 'src/osmapDP.dat'],
+    ['src/osmap.dat'],
     install_dir: py.get_install_dir(),
 )

@@ -16,9 +16,10 @@ C
 C NTX   number of points in thickness/camber arrays
 C
 C
-      PARAMETER (IQX=500, IWX=36, IPX=5, ISX=2)
+      PARAMETER (IQX=370, IPX=5, ISX=2)
 cc      PARAMETER (IQX=1000, IWX=72, IPX=5, ISX=2)
-      PARAMETER (IBX=2*IQX)
+      PARAMETER (IWX=IQX/8 + 2)
+      PARAMETER (IBX=4*IQX)
       PARAMETER (IZX=IQX+IWX)
       PARAMETER (IVX=IQX/2 + IWX + 50)
 C
@@ -36,14 +37,64 @@ C
       LOGICAL LIQSET
       LOGICAL LAECEN
       LOGICAL TFORCE
-      REAL NX, NY, MASS, MINF1, MINF, MINF_CL, MVISC
+      REAL*8 NX, NY, MASS, MINF1, MINF, MINF_CL, MVISC
       INTEGER RETYP, MATYP, AIJPIV, ICCOR
       CHARACTER*1 VMXBL
 C
 C---- dimension temporary work and storage arrays (EQUIVALENCED below)
-      REAL W1(6*IQX),W2(6*IQX),W3(6*IQX),W4(6*IQX),
-     &     W5(6*IQX),W6(6*IQX),W7(6*IQX),W8(6*IQX)
-      REAL BIJ(IQX,IZX), CIJ(IWX,IQX)
+      REAL*8 W1(6*IQX),W2(6*IQX),W3(6*IQX),W4(6*IQX),
+     &       W5(6*IQX),W6(6*IQX),W7(6*IQX),W8(6*IQX)
+      REAL*8 BIJ(IQX,IZX), CIJ(IWX,IQX)
+C
+C---- Explicit REAL*8 declarations for all REAL COMMON block variables
+C     (needed so f2py generates NPY_DOUBLE instead of NPY_FLOAT)
+      REAL*8 VERSION
+      REAL*8 Q, DQ, DZDG, DZDN, DZDM, DQDG, DQDM
+      REAL*8 QTAN1, QTAN2
+      REAL*8 Z_QINF, Z_ALFA
+      REAL*8 Z_QDOF0, Z_QDOF1, Z_QDOF2, Z_QDOF3
+      REAL*8 AIJ, DIJ
+      REAL*8 QINV, QVIS, CPI, CPV, QINVU, QINV_A
+      REAL*8 X, Y, XP, YP, S
+      REAL*8 SLE, XLE, YLE, XTE, YTE, CHORD, YIMAGE
+      REAL*8 WGAP, WAKLEN
+      REAL*8 GAM, GAMU, GAM_A, SIG, APANEL
+      REAL*8 SST, SST_GO, SST_GP
+      REAL*8 GAMTE, GAMTE_A, SIGTE, SIGTE_A
+      REAL*8 DSTE, ANTE, ASTE
+      REAL*8 SSPLE, SSPEC, XSPOC, YSPOC, QGAMM
+      REAL*8 QSPEC, QSPECP
+      REAL*8 ALGAM, CLGAM, CMGAM
+      REAL*8 ALQSP, CLQSP, CMQSP
+      REAL*8 QF0, QF1, QF2, QF3
+      REAL*8 QDOF0, QDOF1, QDOF2, QDOF3, CLSPEC, FFILT
+      REAL*8 ADEG, ALFA, AWAKE, AVISC
+      REAL*8 XCMREF, YCMREF
+      REAL*8 CL, CM, CD, CDP, CDF, CL_ALF, CL_MSQ
+      REAL*8 PSIO, CIRC, COSA, SINA, QINF
+      REAL*8 GAMMA, GAMM1, TKLAM, TKL_MSQ, CPSTAR, QSTAR
+      REAL*8 CPMN, XCPMN, CPMNI, CPMNV, XCPMNI, XCPMNV
+      REAL*8 PI, HOPI, QOPI, DTOR
+      REAL*8 CVPAR, CTERAT, CTRRAT
+      REAL*8 XSREF1, XSREF2, XPREF1, XPREF2
+      REAL*8 XB, YB, XBP, YBP, SB, SNEW
+      REAL*8 XBF, YBF, XOF, YOF, HMOM, HFX, HFY
+      REAL*8 SBLE, CHORDB, AREAB, RADBLE, ANGBTE
+      REAL*8 EI11BA, EI22BA, APX1BA, APX2BA
+      REAL*8 EI11BT, EI22BT, APX1BT, APX2BT
+      REAL*8 THICKB, CAMBRB
+      REAL*8 XCM, YCM, SCM, XCMP, YCMP
+      REAL*8 XTK, YTK, STK, XTKP, YTKP
+      REAL*8 XSSI, UEDG, UINV, THET, DSTR
+      REAL*8 CTAU, DELT, USLP, GUXQ, GUXD
+      REAL*8 TAU, DIS, CTQ, VTI
+      REAL*8 REINF1, REINF, REINF_CL, ACRIT
+      REAL*8 XSTRIP, XOCTR, YOCTR, XSSITR, UINV_A
+      REAL*8 RMSBL, RMXBL, RLX, VACCEL
+      REAL*8 XCADD, YCADD, YCADDP
+      REAL*8 XPADD, YPADD, YPADDP
+      REAL*8 XCAM, YCAM, YCAMP, PCAM, PCAMP
+      REAL*8 VA, VB, VDEL, VM, VZ
 C
       COMMON/CR01/ VERSION
       COMMON/CC01/ NAME,ISPARS
@@ -83,7 +134,8 @@ C
       COMMON/CR11/ PI,HOPI,QOPI,DTOR
       COMMON/CR12/ CVPAR,CTERAT,CTRRAT,XSREF1,XSREF2,XPREF1,XPREF2
       COMMON/CI04/ N,NB,NW,NPAN,IST,
-     &             ITMAX,RETYP,MATYP,AIJPIV(IQX),ICCOR
+     &             ITMAX,RETYP,MATYP,AIJPIV(IQX),ICCOR,
+     &             NCM,NTK
 C---- CR13 (plot sizing) removed -- all variables were plotting-only
       COMMON/CL01/ OK,LIMAGE,SHARP,
      &             LGAMU,LQINU,LVISC,LALFA,LWAKE,
@@ -102,12 +154,14 @@ C---- CR13 (plot sizing) removed -- all variables were plotting-only
      &             SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
      &             EI11BA,EI22BA,APX1BA,APX2BA,
      &             EI11BT,EI22BT,APX1BT,APX2BT,
-     &             THICKB,CAMBRB
+     &             THICKB,CAMBRB,
+     &     XCM(2*IBX),YCM(2*IBX),SCM(2*IBX),XCMP(2*IBX),YCMP(2*IBX),
+     &     XTK(2*IBX),YTK(2*IBX),STK(2*IBX),XTKP(2*IBX),YTKP(2*IBX)
 C
       COMMON/CR15/ XSSI(IVX,ISX),UEDG(IVX,ISX),UINV(IVX,ISX),
      &             MASS(IVX,ISX),THET(IVX,ISX),DSTR(IVX,ISX),
-     &             CTAU(IVX,ISX),DELT(IVX,ISX),USLP(IVX,ISX),
-     &             GUXQ(IVX,ISX),GUXD(IVX,ISX),
+     &             CTAU(IVX,ISX),DELT(IVX,ISX),TSTR(IVX, ISX),
+     &             USLP(IVX,ISX),GUXQ(IVX,ISX),GUXD(IVX,ISX),
      &             TAU(IVX,ISX),DIS(IVX,ISX),CTQ(IVX,ISX),
      &             VTI(IVX,ISX),
      &             REINF1,REINF,REINF_CL,ACRIT,
@@ -375,6 +429,7 @@ C   THET(..)    BL momentum thickness array
 C   DSTR(..)    BL displacement thickness array
 C   CTAU(..)    sqrt(max shear coefficient) array
 C               (in laminar regions, log of amplification ratio)
+C   TSTR(..)    BL kin. energy  thickness array
 C
 C   TAU(..)     wall shear stress array                 (for plotting only)
 C   DIS(..)     dissipation array                       (for plotting only)

@@ -1,9 +1,26 @@
 C
       PARAMETER (NCOM=73)
-      REAL COM1(NCOM), COM2(NCOM)
-      REAL M1, M1_U1, M1_MS, M2, M2_U2, M2_MS
+      REAL*8 COM1(NCOM), COM2(NCOM)
+      REAL*8 M1, M1_U1, M1_MS, M2, M2_U2, M2_MS
       LOGICAL SIMI,TRAN,TURB,WAKE
       LOGICAL TRFORC,TRFREE
+C
+C---- Explicit REAL*8 declarations for COMMON block variables
+C     (needed so f2py generates NPY_DOUBLE instead of NPY_FLOAT)
+      REAL*8 CFM, CFM_MS, CFM_RE
+      REAL*8 CFM_U1, CFM_T1, CFM_D1
+      REAL*8 CFM_U2, CFM_T2, CFM_D2
+      REAL*8 XT, XT_A1, XT_MS, XT_RE, XT_XF
+      REAL*8 XT_X1, XT_T1, XT_D1, XT_U1
+      REAL*8 XT_X2, XT_T2, XT_D2, XT_U2
+      REAL*8 C1SAV, C2SAV
+      REAL*8 DWTE, QINFBL
+      REAL*8 TKBL, TKBL_MS, RSTBL, RSTBL_MS
+      REAL*8 HSTINV, HSTINV_MS
+      REAL*8 REYBL, REYBL_MS, REYBL_RE
+      REAL*8 GAMBL, GM1BL, HVRAT
+      REAL*8 BULE, XIFORC, AMCRIT
+      REAL*8 VS1, VS2, VSREZ, VSR, VSM, VSX
 C
 C-    SCCON  =  shear coefficient lag constant
 C-    GACON  =  G-beta locus constants...
