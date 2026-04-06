@@ -18,6 +18,18 @@ C    along with this program; if not, write to the Free Software
 C    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 C***********************************************************************
 
+C=======================================================================
+      SUBROUTINE IDAMP_SET(IVAL)
+C     Sets the amplification-rate method flag shared via COMMON.
+C     IVAL = 0 : original DAMPL  envelope (1991)
+C     IVAL = 1 : modified DAMPL2 envelope (1996)
+      INTEGER IVAL
+      COMMON /DAMP_COM/ IDAMP
+      INTEGER IDAMP
+      IDAMP = IVAL
+      RETURN
+      END
+
 
       SUBROUTINE TRCHEK
 C
@@ -2142,7 +2154,7 @@ C            when N(x) reaches Ncrit (Ncrit= 9 is "standard").
 C==============================================================
       IMPLICIT REAL (A-H,M,O-Z)
       DATA DGR / 0.08 /
-      DATA HK1, HK2 / 3.8, 4.2 /
+      DATA HK1, HK2 / 3.5, 4.0 /
 C
       HMI = 1.0/(HK - 1.0)
       HMI_HK = -HMI**2
