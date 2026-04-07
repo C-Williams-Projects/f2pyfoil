@@ -27,17 +27,9 @@ C---- set angles of airfoil panels
         SX = X(I+1) - X(I)
         SY = Y(I+1) - Y(I)
         IF(SX.EQ.0.0 .AND. SY.EQ.0.0) THEN
-         IF(I.EQ.1) THEN
           APANEL(I) = ATAN2( -NY(I) , -NX(I) )
-         ELSE
-          APANEL(I) = ATANC( -NY(I) , -NX(I) , APANEL(I-1) )
-         ENDIF
         ELSE
-         IF(I.EQ.1) THEN
           APANEL(I) = ATAN2( SX , -SY )
-         ELSE
-          APANEL(I) = ATANC( SX , -SY , APANEL(I-1) )
-         ENDIF
         ENDIF
    10 CONTINUE
 C
@@ -49,8 +41,7 @@ C---- TE panel
       ELSE
        SX = X(IP) - X(I)
        SY = Y(IP) - Y(I)
-ccc    APANEL(I) = ATAN2( -SX , SY ) + PI
-       APANEL(I) = ATANC(  SX , -SY , APANEL(I-1) )
+       APANEL(I) = ATAN2( -SX , SY ) + PI
       ENDIF
 C
       RETURN
@@ -72,8 +63,13 @@ C
         SX =  YN(I)
         SY = -XN(I)
         SMOD = SQRT(SX*SX + SY*SY)
-        XN(I) = SX/SMOD
-        YN(I) = SY/SMOD
+        IF(SMOD .EQ. 0.0) THEN
+         XN(I) = -1.0
+         YN(I) = 0.0
+        ELSE
+         XN(I) = SX/SMOD
+         YN(I) = SY/SMOD
+        ENDIF
    10 CONTINUE
 C
 C---- average normal vectors at corner points
@@ -82,10 +78,17 @@ C---- average normal vectors at corner points
           SX = 0.5*(XN(I) + XN(I+1))
           SY = 0.5*(YN(I) + YN(I+1))
           SMOD = SQRT(SX*SX + SY*SY)
-          XN(I)   = SX/SMOD
-          YN(I)   = SY/SMOD
-          XN(I+1) = SX/SMOD
-          YN(I+1) = SY/SMOD
+          IF(SMOD .EQ. 0.0) THEN
+           XN(I) = -1.0
+           YN(I) = 0.0
+           XN(I+1) = -1.0
+           YN(I+1) = 0.0
+          ELSE
+           XN(I)   = SX/SMOD
+           YN(I)   = SY/SMOD
+           XN(I+1) = SX/SMOD
+           YN(I+1) = SY/SMOD
+          ENDIF
         ENDIF
  20   CONTINUE
 C
@@ -114,7 +117,6 @@ C-----------------------------------------------------------------------
       INCLUDE 'XFOIL.INC'
       REAL NXO, NYO, NXP, NYP, NXI, NYI
       LOGICAL GEOLIN,SIGLIN
-      REAL THETJ(0:IZX)
 C
 C---- distance tolerance for determining if two points are the same
       SEPS = (S(N)-S(1)) * 1.0E-5
@@ -124,16 +126,16 @@ C
       COSA = COS(ALFA)
       SINA = SIN(ALFA)
 C
-      DO JO=1, N
+      DO 3 JO=1, N
         DZDG(JO) = 0.0
         DZDN(JO) = 0.0
         DQDG(JO) = 0.0
-      ENDDO
+    3 CONTINUE
 C
-      DO JO=1, N
+      DO 4 JO=1, N
         DZDM(JO) = 0.0
         DQDM(JO) = 0.0
-      ENDDO
+    4 CONTINUE
 C
       Z_QINF = 0.
       Z_ALFA = 0.
@@ -156,8 +158,6 @@ C
        SCS = ANTE/DSTE
        SDS = ASTE/DSTE
       ENDIF
-C
-      THETJ(0) = 0.0
 C
       DO 10 JO=1, N
         JP = JO+1
@@ -198,26 +198,31 @@ C
         RS1 = RX1*RX1 + RY1*RY1
         RS2 = RX2*RX2 + RY2*RY2
 C
+C------ set reflection flag SGN to avoid branch problems with arctan
+        IF(IO.GE.1 .AND. IO.LE.N) THEN
+C------- no problem on airfoil surface
+         SGN = 1.0
+        ELSE
+C------- make sure arctan falls between  -/+  Pi/2
+         SGN = SIGN(1.0,YY)
+        ENDIF
+C
 C------ set log(r^2) and arctan(x/y), correcting for reflection if any
         IF(IO.NE.JO .AND. RS1.GT.0.0) THEN
          G1 = LOG(RS1)
-ccc      T1 = ATAN2(X1,YY)
-         T1 = ATANC(X1,YY,THETJ(JO-1))
+         T1 = ATAN2(SGN*X1,SGN*YY) + (0.5 - 0.5*SGN)*PI
         ELSE
          G1 = 0.0
          T1 = 0.0
         ENDIF
-        THETJ(JO) = T1
 C
         IF(IO.NE.JP .AND. RS2.GT.0.0) THEN
          G2 = LOG(RS2)
-ccc      T2 = ATAN2(X2,YY)
-         T2 = ATANC(X2,YY,THETJ(JO))
+         T2 = ATAN2(SGN*X2,SGN*YY) + (0.5 - 0.5*SGN)*PI
         ELSE
          G2 = 0.0
          T2 = 0.0
         ENDIF
-        THETJ(JP) = T2
 C
         X1I = SX*NXI + SY*NYI
         X2I = SX*NXI + SY*NYI
@@ -245,8 +250,7 @@ C------- set up midpoint quantities
          X0 = 0.5*(X1+X2)
          RS0 = X0*X0 + YY*YY
          G0 = LOG(RS0)
-ccc      T0 = ATAN2(X0,YY)
-         T0 = ATANC(X0,YY,THETJ(JO))
+         T0 = ATAN2(SGN*X0,SGN*YY) + (0.5 - 0.5*SGN)*PI
 C
 C------- calculate source contribution to Psi  for  1-0  half-panel
          DXINV = 1.0/(X1-X0)
@@ -485,7 +489,6 @@ C
 C
 C
 C
-      THETJ(0) = 0.0
       DO 20 JO=1, N
         JP = JO+1
 C
@@ -531,16 +534,21 @@ C
         RS1 = RX1*RX1 + RY1*RY1
         RS2 = RX2*RX2 + RY2*RY2
 C
+C------ set reflection flag SGN to avoid branch problems with arctan
+        IF(IO.GE.1 .AND. IO.LE.N) THEN
+C------- no problem on airfoil surface
+         SGN = 1.0
+        ELSE
+C------- make sure arctan falls between  -/+  Pi/2
+         SGN = SIGN(1.0,YY)
+        ENDIF
+C
 C------ set log(r^2) and arctan(x/y), correcting for reflection if any
         G1 = LOG(RS1)
-ccc     T1 = ATAN2(X1,YY)
-        T1 = ATANC(X1,YY,THETJ(JO-1))
-        THETJ(JO) = T1
+        T1 = ATAN2(SGN*X1,SGN*YY) + (0.5 - 0.5*SGN)*PI
 C
         G2 = LOG(RS2)
-ccc     T2 = ATAN2(X2,YY)
-        T2 = ATANC(X2,YY,THETJ(JO))
-        THETJ(JP) = T2
+        T2 = ATAN2(SGN*X2,SGN*YY) + (0.5 - 0.5*SGN)*PI
 C
         X1I = SX*NXI + SY*NYI
         X2I = SX*NXI + SY*NYI
@@ -568,8 +576,7 @@ C------- set up midpoint quantities
          X0 = 0.5*(X1+X2)
          RS0 = X0*X0 + YY*YY
          G0 = LOG(RS0)
-ccc      T0 = ATAN2(X0,YY)
-         T0 = ATANC(X0,YY,THETJ(JO))
+         T0 = ATAN2(SGN*X0,SGN*YY) + (0.5 - 0.5*SGN)*PI
 C
 C------- calculate source contribution to Psi  for  1-0  half-panel
          DXINV = 1.0/(X1-X0)
@@ -805,7 +812,6 @@ C          Wake:     N+1 < I < N+NW
 C--------------------------------------------------------------------
       INCLUDE 'XFOIL.INC'
       REAL NXI, NYI
-      REAL THETJ(0:IZX)
 C
       IO = I
 C
@@ -820,7 +826,6 @@ C
       PSI    = 0.
       PSI_NI = 0.
 C
-      THETJ(0) = 0.0
       DO 20 JO=N+1, N+NW-1
 C
         JP = JO+1
@@ -853,25 +858,27 @@ C
         RS1 = RX1*RX1 + RY1*RY1
         RS2 = RX2*RX2 + RY2*RY2
 C
+        IF(IO.GE.N+1 .AND. IO.LE.N+NW) THEN
+         SGN = 1.0
+        ELSE
+         SGN = SIGN(1.0,YY)
+        ENDIF
+C
         IF(IO.NE.JO .AND. RS1.GT.0.0) THEN
          G1 = LOG(RS1)
-ccc      T1 = ATAN2(X1,YY)
-         T1 = ATANC(X1,YY,THETJ(JO-1))
+         T1 = ATAN2(SGN*X1,SGN*YY) - (0.5 - 0.5*SGN)*PI
         ELSE
          G1 = 0.0
          T1 = 0.0
         ENDIF
-        THETJ(JO) = T1
 C
         IF(IO.NE.JP .AND. RS2.GT.0.0) THEN
          G2 = LOG(RS2)
-ccc      T2 = ATAN2(X2,YY)
-         T2 = ATANC(X2,YY,THETJ(JO))
+         T2 = ATAN2(SGN*X2,SGN*YY) - (0.5 - 0.5*SGN)*PI
         ELSE
          G2 = 0.0
          T2 = 0.0
         ENDIF
-        THETJ(JP) = T2
 C
         X1I = SX*NXI + SY*NYI
         X2I = SX*NXI + SY*NYI
@@ -881,8 +888,7 @@ C------- set up midpoint quantities
          X0 = 0.5*(X1+X2)
          RS0 = X0*X0 + YY*YY
          G0 = LOG(RS0)
-ccc      T0 = ATAN2(X0,YY)
-         T0 = ATANC(X0,YY,THETJ(JO-1))
+         T0 = ATAN2(SGN*X0,SGN*YY) - (0.5 - 0.5*SGN)*PI
 C
 C------- calculate source contribution to Psi  for  1-0  half-panel
          DXINV = 1.0/(X1-X0)
@@ -1327,8 +1333,7 @@ C
          NY(I+1) = -PSI_Y / SQRT(PSI_X**2 + PSI_Y**2)
 C
 C------- set angle of wake panel normal
-ccc      APANEL(I) = ATAN2( PSI_Y , PSI_X )
-         APANEL(I) = ATANC( PSI_Y , PSI_X , APANEL(I-1) )
+         APANEL(I) = ATAN2( PSI_Y , PSI_X )
 C
    10 CONTINUE
 C
