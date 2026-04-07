@@ -32,19 +32,19 @@ def Single(case, tol=1e-6):
         conv_statment = "Converged" if conv else "Not Converged"
         print("")
         print(f"Test Case {ID}: {Description} - {conv_statment}")
-        print("="*20)  
-        print("f2pyfoil Scalars{:<7}:" f"CL: {cl:.10f}, CD: {cd:.10f}, CM: {cm:.10f}, Xtc Top: {xtt:.10f}, Xtc Bot: {xtb:.10f}")
-        print("XFoil Reference Scalars:" f"CL: {case['CL']:.10f}, CD: {case['CD']:.10f}, CM: {case['CM']:.10f}, Xtc Top: {case['Xtc Top']:.10f}, Xtc Bot: {case['Xtc Bot']:.10f}")
-        print("Difference in Scalars:" f"CL: {cl - case['CL']:.10f}, CD: {cd - case['CD']:.10f}, CM: {cm - case['CM']:.10f}, Xtc Top: {xtt - case['Xtc Top']:.10f}, Xtc Bot: {xtb - case['Xtc Bot']:.10f}")
+        print("="*115)  
+        print(f"{'f2pyfoil Scalars:' :<20}" f"CL: {cl:.10f}, CD: {cd:.10f}, CM: {cm:.10f}, Xtc Top: {xtt:.10f}, Xtc Bot: {xtb:.10f}")
+        print(f"{'Reference Scalars:' :<20}" f"CL: {case['CL']:.10f}, CD: {case['CD']:.10f}, CM: {case['CM']:.10f}, Xtc Top: {case['Xtc Top']:.10f}, Xtc Bot: {case['Xtc Bot']:.10f}")
+        print(f"{'Difference:' :<20}" f"CL: {cl - case['CL']:10.5e}, CD: {cd - case['CD']:10.5e}, CM: {cm - case['CM']:10.5e}, Xtc Top: {xtt - case['Xtc Top']:10.5e}, Xtc Bot: {xtb - case['Xtc Bot']:10.5e}")
     elif Description == 'Single cl':
         a, cd, cm, xtt, xtb, conv = xf.cl(case['cl'])
         conv_statment = "Converged" if conv else "Not Converged"
         print("")
         print(f"Test Case {ID}: {Description} - {conv_statment}") 
-        print("="*20) 
-        print("f2pyfoil Scalars{:<7}:" f"A: {a:.10f}, CD: {cd:.10f}, CM: {cm:.10f}, Xtc Top: {xtt:.10f}, Xtc Bot: {xtb:.10f}")
-        print("XFoil Reference Scalars:" f"A: {case['CL']:.10f}, CD: {case['CD']:.10f}, CM: {case['CM']:.10f}, Xtc Top: {case['Xtc Top']:.10f}, Xtc Bot: {case['Xtc Bot']:.10f}")
-        print("Difference in Scalars:" f"A: {a - case['alpha']:.10f}, CD: {cd - case['CD']:.10f}, CM: {cm - case['CM']:.10f}, Xtc Top: {xtt - case['Xtc Top']:.10f}, Xtc Bot: {xtb - case['Xtc Bot']:.10f}")
+        print("="*115) 
+        print(f"{'f2pyfoil Scalars:' :<20}" f"A: {a:.10f}, CD: {cd:.10f}, CM: {cm:.10f}, Xtc Top: {xtt:.10f}, Xtc Bot: {xtb:.10f}")
+        print(f"{'Reference Scalars:' :<20}" f"A: {case['CL']:.10f}, CD: {case['CD']:.10f}, CM: {case['CM']:.10f}, Xtc Top: {case['Xtc Top']:.10f}, Xtc Bot: {case['Xtc Bot']:.10f}")
+        print(f"{'Difference:' :<20}" f"A: {a - case['alpha']:10.5e}, CD: {cd - case['CD']:10.5e}, CM: {cm - case['CM']:10.5e}, Xtc Top: {xtt - case['Xtc Top']:10.5e}, Xtc Bot: {xtb - case['Xtc Bot']:10.5e}")
     else:
         cl, cd, cm, xtt, xtb, conv = xf.alpha(0.0)
         cl, cd, cm, xtt, xtb, conv = xf.alpha(case['alpha'] / 4)
@@ -56,10 +56,10 @@ def Single(case, tol=1e-6):
 
         print("")
         print(f"Test Case {ID}: {Description} - {conv_statment}") 
-        print("="*20)  
-        print("f2pyfoil Scalars{:<7}:" f"CL: {cl:.10f}, CD: {cd:.10f}, CM: {cm:.10f}, Xtc Top: {xtt:.10f}, Xtc Bot: {xtb:.10f}")
-        print("XFoil Reference Scalars:" f"CL: {case['CL']:.10f}, CD: {case['CD']:.10f}, CM: {case['CM']:.10f}, Xtc Top: {case['Xtc Top']:.10f}, Xtc Bot: {case['Xtc Bot']:.10f}")
-        print("Difference in Scalars:" f"CL: {cl - case['CL']:.10f}, CD: {cd - case['CD']:.10f}, CM: {cm - case['CM']:.10f}, Xtc Top: {xtt - case['Xtc Top']:.10f}, Xtc Bot: {xtb - case['Xtc Bot']:.10f}")
+        print("="*115)  
+        print(f"{'f2pyfoil Scalars:' :<20}" f"CL: {cl:.10f}, CD: {cd:.10f}, CM: {cm:.10f}, Xtc Top: {xtt:.10f}, Xtc Bot: {xtb:.10f}")
+        print(f"{'Reference Scalars:' :<20}" f"CL: {case['CL']:.10f}, CD: {case['CD']:.10f}, CM: {case['CM']:.10f}, Xtc Top: {case['Xtc Top']:.10f}, Xtc Bot: {case['Xtc Bot']:.10f}")
+        print(f"{'Difference:' :<20}" f"CL: {cl - case['CL']:10.5e}, CD: {cd - case['CD']:10.5e}, CM: {cm - case['CM']:10.5e}, Xtc Top: {xtt - case['Xtc Top']:10.5e}, Xtc Bot: {xtb - case['Xtc Bot']:10.5e}")
         
     N = xf.getn(); NBL = xf.getnbl()
     cp = xf.getcp(N)
@@ -67,18 +67,18 @@ def Single(case, tol=1e-6):
     x = xi[:N]
     if case['Re'] == 0.0:
         print("Cp Data Summary:")
-        print("="*45)
+        #print("="*45)
         print(f"{'':>18} {'x':>12} {'cp':>12}")
-        print(f"{'Max Difference:':>18} {np.max(np.abs(x - ref_x)):>12.5e} {np.max(np.abs(cp - case['Cp'])):>12.5e}")
-        print(f"{'Mean Difference:':>18} {np.mean(np.abs(x - ref_x)):>12.5e} {np.mean(np.abs(cp - case['Cp'])):>12.5e}")
-        print(f"{'Tolerance Check:':>18} {str(np.allclose(x, ref_x, atol=tol)):>12} {str(np.allclose(cp, case['Cp'], atol=tol)):>12}")
+        print(f"{'Max Difference:':<18} {np.max(np.abs(x - ref_x)):>12.5e} {np.max(np.abs(cp - case['Cp'])):>12.5e}")
+        print(f"{'Mean Difference:':<18} {np.mean(np.abs(x - ref_x)):>12.5e} {np.mean(np.abs(cp - case['Cp'])):>12.5e}")
+        print(f"{'Tolerance Check:':<18} {str(np.allclose(x, ref_x, atol=tol)):>12} {str(np.allclose(cp, case['Cp'], atol=tol)):>12}")
     else:
-        print("BL Data Summary:")
-        print("="*115)
-        print(f"{'':>18} {'s':>12} {'x':>12} {'y':>12} {'cp':>12} {'ue':>12} {'dstr':>12} {'thet':>12} {'cf':>12}")
-        print(f"{'Max Difference:':>18} {np.max(np.abs(s - ref_s)):>12.5e} {np.max(np.abs(x - ref_x)):>12.5e} {np.max(np.abs(y - ref_y)):>12.5e} {np.max(np.abs(cp - case['Cp'])):>12.5e} {np.max(np.abs(ue - case['Ue'])):>12.5e} {np.max(np.abs(dstr - case['Dstar'])):>12.5e} {np.max(np.abs(thet - case['Theta'])):>12.5e} {np.max(np.abs(cf - case['Cf'])):>12.5e}")
-        print(f"{'Mean Difference:':>18} {np.mean(np.abs(s - ref_s)):>12.5e} {np.mean(np.abs(x - ref_x)):>12.5e} {np.mean(np.abs(y - ref_y)):>12.5e} {np.mean(np.abs(cp - case['Cp'])):>12.5e} {np.mean(np.abs(ue - case['Ue'])):>12.5e} {np.mean(np.abs(dstr - case['Dstar'])):>12.5e} {np.mean(np.abs(thet - case['Theta'])):>12.5e} {np.mean(np.abs(cf - case['Cf'])):>12.5e}")
-        print(f"{'Tolerance Check:':>18} {str(np.allclose(s, ref_s, atol=tol)):>12} {str(np.allclose(x, ref_x, atol=tol)):>12} {str(np.allclose(y, ref_y, atol=tol)):>12} {str(np.allclose(cp, case['Cp'], atol=tol)):>12} {str(np.allclose(ue, case['Ue'], atol=tol)):>12} {str(np.allclose(dstr, case['Dstar'], atol=tol)):>12} {str(np.allclose(thet, case['Theta'], atol=tol)):>12} {str(np.allclose(cf, case['Cf'], atol=tol)):>12}")
+        #print("BL Data Summary:")
+        #print("="*115)
+        print(f"{'':>18} {'s':>12} {'x':>12} {'y':>12} {'Cp':>12} {'Ue/Vinf':>12} {'dstr':>12} {'theta':>12} {'Cf':>12}")
+        print(f"{'Max Difference:':<18} {np.max(np.abs(s - ref_s)):>12.5e} {np.max(np.abs(x - ref_x)):>12.5e} {np.max(np.abs(y - ref_y)):>12.5e} {np.max(np.abs(cp - case['Cp'])):>12.5e} {np.max(np.abs(ue - case['Ue'])):>12.5e} {np.max(np.abs(dstr - case['Dstar'])):>12.5e} {np.max(np.abs(thet - case['Theta'])):>12.5e} {np.max(np.abs(cf - case['Cf'])):>12.5e}")
+        print(f"{'Mean Difference:':<18} {np.mean(np.abs(s - ref_s)):>12.5e} {np.mean(np.abs(x - ref_x)):>12.5e} {np.mean(np.abs(y - ref_y)):>12.5e} {np.mean(np.abs(cp - case['Cp'])):>12.5e} {np.mean(np.abs(ue - case['Ue'])):>12.5e} {np.mean(np.abs(dstr - case['Dstar'])):>12.5e} {np.mean(np.abs(thet - case['Theta'])):>12.5e} {np.mean(np.abs(cf - case['Cf'])):>12.5e}")
+        print(f"{'Tolerance Check:':<18} {str(np.allclose(s, ref_s, atol=tol)):>12} {str(np.allclose(x, ref_x, atol=tol)):>12} {str(np.allclose(y, ref_y, atol=tol)):>12} {str(np.allclose(cp, case['Cp'], atol=tol)):>12} {str(np.allclose(ue, case['Ue'], atol=tol)):>12} {str(np.allclose(dstr, case['Dstar'], atol=tol)):>12} {str(np.allclose(thet, case['Theta'], atol=tol)):>12} {str(np.allclose(cf, case['Cf'], atol=tol)):>12}")
     return
 
 def Sequential(case, tol=1e-6):
@@ -202,9 +202,9 @@ def Consecutive(case, tol=1e-6):
         print(f"{'Mean Difference:':>18} {np.mean(np.abs(s - ref_s)):>12.5e} {np.mean(np.abs(x - ref_x)):>12.5e} {np.mean(np.abs(y - ref_y)):>12.5e} {np.mean(np.abs(cp - case['Cp'])):>12.5e} {np.mean(np.abs(ue - case['Ue'])):>12.5e} {np.mean(np.abs(dstr - case['Dstar'])):>12.5e} {np.mean(np.abs(thet - case['Theta'])):>12.5e} {np.mean(np.abs(cf - case['Cf'])):>12.5e}")
         print(f"{'Tolerance Check:':>18} {str(np.allclose(s, ref_s, atol=tol)):>12} {str(np.allclose(x, ref_x, atol=tol)):>12} {str(np.allclose(y, ref_y, atol=tol)):>12} {str(np.allclose(cp, case['Cp'], atol=tol)):>12} {str(np.allclose(ue, case['Ue'], atol=tol)):>12} {str(np.allclose(dstr, case['Dstar'], atol=tol)):>12} {str(np.allclose(thet, case['Theta'], atol=tol)):>12} {str(np.allclose(cf, case['Cf'], atol=tol)):>12}")
 
-#Single(Test_0)
-#Single(Test_1)
-#Single(Test_2)
-#Single(Test_3)
-#Single(Test_4)
-Sequential(Test_5)
+Single(Test_0)
+Single(Test_1)
+Single(Test_2)
+Single(Test_3)
+Single(Test_4)
+#Sequential(Test_5)
