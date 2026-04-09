@@ -1,7 +1,11 @@
 import numpy as np
-from OPER_data import (Test_5, Test_6, Test_7, Test_Descriptions, Test_0, Test_1, Test_2, Test_3, Test_4,
+from OPER_data import (Test_Descriptions, Test_0, Test_1, Test_2, Test_3, Test_4,
                     Test_5, Test_6, Test_7, Test_8, Test_9, DAE_11, PANELS_DAE_11, PANELS_NACA0012, PANELS_NACA2412)
 import xfoil as xf
+##########################
+# Note the y coordinates of the panels are taken from a 5 degree alpha run, all other alpha runs will produce a large error
+##########################
+
 
 def Single(case, tol=1e-6):
     ID = case['Test_ID']
@@ -97,19 +101,24 @@ def Sequential(case, tol=1e-6):
     if Description == 'Alpha Sequence':
         alfas, cls, cds, cms, xtts, xtbs, convs = xf.aseq(case['alpha_i'], case['alpha_f'], (case['alpha_f'] - case['alpha_i']) / case['alpha_step'] + 1)
         total_converged = sum(convs)
-        uncon_a = np.array([x for x in alfas if not np.any(np.isclose(x, case['alphas']))])
-        uncon_idx = np.array([np.where(np.isclose(alfas, x))[0][0] for x in uncon_a])
-        print(uncon_idx)
-        for i in range(len(uncon_idx)):
-            if convs[uncon_idx[i]] != 0:
-                print("Converged where reference data did not converge at alpha =", uncon_a[i])
-            else:
-                continue
-        cl = np.delete(cls, uncon_idx)
-        cd = np.delete(cds, uncon_idx)
-        cm = np.delete(cms, uncon_idx)
-        xtt = np.delete(xtts, uncon_idx)
-        xtb = np.delete(xtbs, uncon_idx)
+        print(convs)
+        #print(alfas)
+        if total_converged != len(convs):
+            uncon_a = np.array([x for x in alfas if not np.any(np.isclose(x, case['alphas']))])
+            uncon_idx = np.array([np.where(np.isclose(alfas, x))[0][0] for x in uncon_a])
+            print(uncon_idx)
+            for i in range(len(uncon_idx)):
+                if convs[uncon_idx[i]] != 0:
+                    print("Converged where reference data did not converge at alpha =", uncon_a[i])
+                else:
+                    continue
+            cl = np.delete(cls, uncon_idx)
+            cd = np.delete(cds, uncon_idx)
+            cm = np.delete(cms, uncon_idx)
+            xtt = np.delete(xtts, uncon_idx)
+            xtb = np.delete(xtbs, uncon_idx)
+        else:
+            cl = cls; cd = cds; cm = cms; xtt = xtts; xtb = xtbs
         print("")
         print(f"Test Case {ID}: {Description} - {total_converged}/{len(convs)} Converged")
         print("="*20)
@@ -117,7 +126,6 @@ def Sequential(case, tol=1e-6):
         print("Max Difference:", f"{np.max(np.abs(cl - case['CLs'])):>10.5e} {np.max(np.abs(cd - case['CDs'])):>10.5e} {np.max(np.abs(cm - case['CMs'])):>10.5e} {np.max(np.abs(xtt - case['Xtc Tops'])):>10.5e} {np.max(np.abs(xtb - case['Xtc Bots'])):>10.5e}")
         print("Mean Difference:", f"{np.mean(np.abs(cl - case['CLs'])):>10.5e} {np.mean(np.abs(cd - case['CDs'])):>10.5e} {np.mean(np.abs(cm - case['CMs'])):>10.5e} {np.mean(np.abs(xtt - case['Xtc Tops'])):>10.5e} {np.mean(np.abs(xtb - case['Xtc Bots'])):>10.5e}")
         print("Tolerance Check:", np.allclose(cl, case['CLs'], atol=tol), np.allclose(cd, case['CDs'], atol=tol), np.allclose(cm, case['CMs'], atol=tol), np.allclose(xtt, case['Xtc Tops'], atol=tol), np.allclose(xtb, case['Xtc Bots'], atol=tol))
-
     else:
         alphas, cds, cms, xtts, xtbs, convs = xf.cseq(case['cl_i'], case['cl_f'], case['cl_step'])
         total_converged = sum(convs)
@@ -202,9 +210,11 @@ def Consecutive(case, tol=1e-6):
         print(f"{'Mean Difference:':>18} {np.mean(np.abs(s - ref_s)):>12.5e} {np.mean(np.abs(x - ref_x)):>12.5e} {np.mean(np.abs(y - ref_y)):>12.5e} {np.mean(np.abs(cp - case['Cp'])):>12.5e} {np.mean(np.abs(ue - case['Ue'])):>12.5e} {np.mean(np.abs(dstr - case['Dstar'])):>12.5e} {np.mean(np.abs(thet - case['Theta'])):>12.5e} {np.mean(np.abs(cf - case['Cf'])):>12.5e}")
         print(f"{'Tolerance Check:':>18} {str(np.allclose(s, ref_s, atol=tol)):>12} {str(np.allclose(x, ref_x, atol=tol)):>12} {str(np.allclose(y, ref_y, atol=tol)):>12} {str(np.allclose(cp, case['Cp'], atol=tol)):>12} {str(np.allclose(ue, case['Ue'], atol=tol)):>12} {str(np.allclose(dstr, case['Dstar'], atol=tol)):>12} {str(np.allclose(thet, case['Theta'], atol=tol)):>12} {str(np.allclose(cf, case['Cf'], atol=tol)):>12}")
 
-Single(Test_0)
-Single(Test_1)
-Single(Test_2)
-Single(Test_3)
-Single(Test_4)
-#Sequential(Test_5)
+#Single(Test_0)
+#Single(Test_1)
+#Single(Test_2)
+#Single(Test_3)
+#Single(Test_4)
+Sequential(Test_5)
+Single(Test_6)
+#Sequential(Test_7)

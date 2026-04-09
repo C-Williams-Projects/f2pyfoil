@@ -1,17 +1,22 @@
-# About f2pyfoil v1.0
+# About f2pyfoil v0.9
 f2pyfoil is a project aimed at creating a Python interface for the XFOIL airfoil analysis software using Fortran. The goal of this project is to provide a high-performance and simple interface for XFOIL that can be easily integrated into Python workflows.
 
 Currently the only part of XFOIL that is implemented in f2pyfoil is the panel method solver, which is used to calculate the flow around an airfoil. The panel method solver is a key component of XFOIL and is responsible for calculating the pressure distribution and aerodynamic coefficients for a given airfoil geometry and flow conditions. Future plans aim to implement XFOIL's remaining features to provide a complete version of XFOIL.
 
 This repository will be exclusively for the development of the Fortran side of the code and will provide no Python code. The Fortran code will be compiled into a shared library that can be imported and used in Python using the f2py tool. The Python wrapper code will be developed in a separate repository that will depend on this one.
 
-# Future Plans (v 1.1)
+# Future Plans (v 1.0)
 - [x] Add boundary layer data retrieval functions
 - [x] Add parameterised airfoil geometry definitions (PARSEC, CST, etc.)
 - [x] Add Laitone and Prandtl-Glauert compressibility corrections
 - [x] Update to double precision with f2py compatibility
 - [x] Add GDES subroutines
 - [ ] Add support for other analysis routines Surface-speed (QDES), Complex Mapping (MDES)
+## Beyond f2pyfoil
+- [ ] Repository 1, "pyfoil" building on top of f2pyfoil to provide a user-friendly Python interface to XFOIL's features adding in a plotting suite, some 'smart' convergence, error handling and support for batch simulations with parallel processing.
+- [ ] Repository 2, "pyNNfoil" building on top of pyfoil to provide surrogate models alongside XFoil, trained on a large dataset of simulations. Various architectures will be provided for a variety of surrogate models focusing on multi-layer perceptron, convolutional neural networks and graph neural networks. Physics-informed neural network (PINN) variations aswell to enforce physical constraints and improve the accuracy of the surrogate model.
+- [ ] Repository 3, "optifoil" building on top of pyNNfoil to provide an optimisation framework for airfoil design using surrogate models or original Xfoil. This repository will include various optimization algorithms such as genetic algorithms, particle swarm optimisation and Bayesian optimisation and constraints handling. Optimisation with the surrogate mdoels will be able to take full advantage of gradient based optimisation approaches by using activation functions like swish or tanh.
+- [ ] Repository 4, "metafoil" building on top of optifoil a dataset of optimised airfoils and the design conditions will be used to train a meta-model that can predict the optimal airfoil design for a given set of design conditions. This meta-model will be able to provide quick predictions of optimal airfoil designs without the need for running expensive simulations or optimisation, supplanting both the solver and optimisation steps in the design process.
 
 
 # f2pyfoil build guide
