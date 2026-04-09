@@ -14,8 +14,11 @@ This repository will be exclusively for the development of the Fortran side of t
 - [ ] Add support for other analysis routines Surface-speed (QDES), Complex Mapping (MDES)
 ## Beyond f2pyfoil
 - [ ] Repository 1, "pyfoil" building on top of f2pyfoil to provide a user-friendly Python interface to XFOIL's features adding in a plotting suite, some 'smart' convergence, error handling and support for batch simulations with parallel processing.
+
 - [ ] Repository 2, "pyNNfoil" building on top of pyfoil to provide surrogate models alongside XFoil, trained on a large dataset of simulations. Various architectures will be provided for a variety of surrogate models focusing on multi-layer perceptron, convolutional neural networks and graph neural networks. Physics-informed neural network (PINN) variations aswell to enforce physical constraints and improve the accuracy of the surrogate model.
-- [ ] Repository 3, "optifoil" building on top of pyNNfoil to provide an optimisation framework for airfoil design using surrogate models or original Xfoil. This repository will include various optimization algorithms such as genetic algorithms, particle swarm optimisation and Bayesian optimisation and constraints handling. Optimisation with the surrogate mdoels will be able to take full advantage of gradient based optimisation approaches by using activation functions like swish or tanh.
+
+- [ ] Repository 3, "optifoil" building on top of pyNNfoil to provide an optimisation framework for airfoil design using surrogate models or the XFoil solver. This package will include various optimization algorithms such as genetic algorithms, particle swarm optimisation, SLSQP and more, with constraints handling. Optimisation with the surrogate mdoels will be able to take full advantage of gradient based optimisation approaches by using activation functions like swish or tanh.
+
 - [ ] Repository 4, "metafoil" building on top of optifoil a dataset of optimised airfoils and the design conditions will be used to train a meta-model that can predict the optimal airfoil design for a given set of design conditions. This meta-model will be able to provide quick predictions of optimal airfoil designs without the need for running expensive simulations or optimisation, supplanting both the solver and optimisation steps in the design process.
 
 
