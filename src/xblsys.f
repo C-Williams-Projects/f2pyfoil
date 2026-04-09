@@ -18,18 +18,6 @@ C    along with this program; if not, write to the Free Software
 C    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 C***********************************************************************
 
-C=======================================================================
-      SUBROUTINE IDAMP_SET(IVAL)
-C     Sets the amplification-rate method flag shared via COMMON.
-C     IVAL = 0 : original DAMPL  envelope (1991)
-C     IVAL = 1 : modified DAMPL2 envelope (1996)
-      INTEGER IVAL
-      COMMON /DAMP_COM/ IDAMP
-      INTEGER IDAMP
-      IDAMP = IVAL
-      RETURN
-      END
-
 
       SUBROUTINE TRCHEK
 C
@@ -45,15 +33,12 @@ C
 
 
       SUBROUTINE AXSET( HK1,    T1,    RT1,    A1,
-     &                  HK2,    T2,    RT2,    A2,  ACRIT,
+     &                  HK2,    T2,    RT2,    A2,  ACRIT, IDAMPV,
      &           AX, AX_HK1, AX_T1, AX_RT1, AX_A1,
      &               AX_HK2, AX_T2, AX_RT2, AX_A2 )
 C----------------------------------------------------------
 C     Returns average amplification AX over interval 1..2
 C----------------------------------------------------------
-
-      common /damp_com/ idamp
-
 C
 cC==========================
 cC---- 1st-order -- based on "1" quantities only
@@ -82,13 +67,13 @@ c      DAX_T2 = 0.
 C
 C==========================
 C---- 2nd-order
-      if(idamp.eq.0) then
+      IF(IDAMPV.EQ.0) THEN
       CALL DAMPL( HK1, T1, RT1, AX1, AX1_HK1, AX1_T1, AX1_RT1 )
       CALL DAMPL( HK2, T2, RT2, AX2, AX2_HK2, AX2_T2, AX2_RT2 )
-      else
+      ELSE
       CALL DAMPL2( HK1, T1, RT1, AX1, AX1_HK1, AX1_T1, AX1_RT1 )
       CALL DAMPL2( HK2, T2, RT2, AX2, AX2_HK2, AX2_T2, AX2_RT2 )
-      endif
+      ENDIF
 C
 CC---- simple-average version
 C      AXA = 0.5*(AX1 + AX2)
@@ -181,7 +166,7 @@ c      INCLUDE 'XBL.INC'
 cC
 cC---- calculate AMPL2 value
 c      CALL AXSET( HK1,    T1,    RT1, AMPL1,
-c     &            HK2,    T2,    RT2, AMPL2,  AMCRIT,
+c     &            HK2,    T2,    RT2, AMPL2,  AMCRIT, IDAMPV,
 c     &     AX, AX_HK1, AX_T1, AX_RT1, AX_A1,
 c     &         AX_HK2, AX_T2, AX_RT2, AX_A2 )
 c      AMPL2 = AMPL1 + AX*(X2-X1)
@@ -282,7 +267,7 @@ C---- save variables and sensitivities at IBL ("2") for future restoration
 C
 C---- calculate average amplification rate AX over X1..X2 interval
       CALL AXSET( HK1,    T1,    RT1, AMPL1,
-     &            HK2,    T2,    RT2, AMPL2,  AMCRIT,
+     &            HK2,    T2,    RT2, AMPL2,  AMCRIT, IDAMPV,
      &     AX, AX_HK1, AX_T1, AX_RT1, AX_A1,
      &         AX_HK2, AX_T2, AX_RT2, AX_A2 )
 C
@@ -398,7 +383,7 @@ C---- restore clobbered "2" variables, except for AMPL2
 C
 C---- calculate amplification rate AX over current X1-XT interval
       CALL AXSET( HK1,    T1,    RT1, AMPL1,
-     &            HKT,    TT,    RTT, AMPLT,  AMCRIT,
+     &            HKT,    TT,    RTT, AMPLT,  AMCRIT, IDAMPV,
      &     AX, AX_HK1, AX_T1, AX_RT1, AX_A1,
      &         AX_HKT, AX_TT, AX_RTT, AX_AT )
 C
@@ -1089,6 +1074,7 @@ C
 C------ laminar wake CD
         CALL DILW( HK2, RT2, DI2L, DI2L_HK2, DI2L_RT2 )
         IF(DI2L .GT. DI2) THEN
+cc        IF(.true.) THEN
 C------- laminar wake CD is greater than turbulent CD -- use laminar
 C-       (this will only occur for unreasonably small Rtheta)
 ccc         write(*,*) 'CDt CDl Rt Hk:', DI2, DI2L, RT2, HK2
@@ -1674,7 +1660,7 @@ C***** laminar part -->  set amplification equation
 C
 C----- set average amplification AX over interval X1..X2
        CALL AXSET( HK1,    T1,    RT1, AMPL1,  
-     &             HK2,    T2,    RT2, AMPL2, AMCRIT,
+     &             HK2,    T2,    RT2, AMPL2, AMCRIT, IDAMPV,
      &      AX, AX_HK1, AX_T1, AX_RT1, AX_A1,
      &          AX_HK2, AX_T2, AX_RT2, AX_A2 )
 C
@@ -2354,9 +2340,11 @@ C---- Laminar HS correlation
      &       - 0.0278*(3.0*TMP**2 - TMP**3/(HK+1.0))/(HK+1.0)
      &       - 0.0002*2.0*TMP*HK * (TMP + HK)
       ELSE
-       HS    = 0.015*    (HK-4.35)**2/HK + 1.528
-       HS_HK = 0.015*2.0*(HK-4.35)   /HK
-     &       - 0.015*    (HK-4.35)**2/HK**2
+       HS2 = 0.015
+c       HS2 = 0.09
+       HS    = HS2*    (HK-4.35)**2/HK + 1.528
+       HS_HK = HS2*2.0*(HK-4.35)   /HK
+     &       - HS2*    (HK-4.35)**2/HK**2
       ENDIF
 C
       HS_RT  = 0.
@@ -2497,6 +2485,8 @@ C
  
       SUBROUTINE CFT( HK, RT, MSQ, CF, CF_HK, CF_RT, CF_MSQ )
       IMPLICIT REAL (A-H,M,O-Z)
+      INCLUDE 'BLPAR.INC'
+C
       DATA GAM /1.4/
 C
 C---- Turbulent skin friction function  ( Cf )    (Coles)
@@ -2512,7 +2502,7 @@ C
 C
       THK = TANH(4.0 - HK/0.875)
 C
-      CFO =  0.3*EXP(ARG) * (GRT/2.3026)**GEX
+      CFO =  CFFAC * 0.3*EXP(ARG) * (GRT/2.3026)**GEX
       CF     = ( CFO  +  1.1E-4*(THK-1.0) ) / FC
       CF_HK  = (-1.33*CFO - 0.31*LOG(GRT/2.3026)*CFO
      &         - 1.1E-4*(1.0-THK**2) / 0.875    ) / FC

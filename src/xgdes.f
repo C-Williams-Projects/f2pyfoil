@@ -20,6 +20,7 @@ C***********************************************************************
 C
       SUBROUTINE ABCOPY(LCONF)
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
       LOGICAL LCONF
 C
       IF(NB.LE.1) THEN
@@ -531,6 +532,7 @@ C       GAPNEW   desired new TE gap
 C       DOC      blending distance/c (0..1)
 C----------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
       CALL LEFIND(SBLE,XB,XBP,YB,YBP,SB,NB)
       XBLE = SEVAL(SBLE,XB,XBP,SB,NB)
@@ -608,6 +610,7 @@ C       RFAC   approx. new/old LE radius scaling ratio
 C       DOC    blending distance/c from LE (>= 0.001)
 C----------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
       DOC = MAX( DOC , 0.001 )
 C
@@ -655,6 +658,7 @@ C       TNEW   new max thickness (use 999.0 to skip)
 C       CNEW   new max camber    (use 999.0 to skip)
 C------------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
 C--- find the current buffer airfoil camber and thickness
       CALL GETCAM(XCM,YCM,NCM,XTK,YTK,NTK,
@@ -763,6 +767,7 @@ C       CHPNT  new camber highpoint x location
 C              (use 0.0 to keep current)
 C------------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
       REAL XFN(5), YFN(5), YFNP(5), SFN(5)
 C
 C--- Check chordline direction (should be unrotated for camber routines)
@@ -882,6 +887,7 @@ C       TFAC   new/old thickness scale factor
 C       CFAC   new/old camber    scale factor
 C------------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
 C--- find the current buffer airfoil camber and thickness
       CALL GETCAM(XCM,YCM,NCM,XTK,YTK,NTK,

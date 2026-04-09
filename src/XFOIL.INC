@@ -16,7 +16,7 @@ C
 C NTX   number of points in thickness/camber arrays
 C
 C
-      PARAMETER (IQX=370, IPX=5, ISX=2)
+      PARAMETER (IQX=740, IPX=5, ISX=2)
 cc      PARAMETER (IQX=1000, IWX=72, IPX=5, ISX=2)
       PARAMETER (IWX=IQX/8 + 2)
       PARAMETER (IBX=4*IQX)
@@ -38,7 +38,7 @@ C
       LOGICAL LAECEN
       LOGICAL TFORCE
       REAL*8 NX, NY, MASS, MINF1, MINF, MINF_CL, MVISC
-      INTEGER RETYP, MATYP, AIJPIV, ICCOR
+      INTEGER RETYP, MATYP, AIJPIV
       CHARACTER*1 VMXBL
 C
 C---- dimension temporary work and storage arrays (EQUIVALENCED below)
@@ -73,7 +73,7 @@ C     (needed so f2py generates NPY_DOUBLE instead of NPY_FLOAT)
       REAL*8 CL, CM, CD, CDP, CDF, CL_ALF, CL_MSQ
       REAL*8 PSIO, CIRC, COSA, SINA, QINF
       REAL*8 GAMMA, GAMM1, TKLAM, TKL_MSQ, CPSTAR, QSTAR
-      REAL*8 CPMN, XCPMN, CPMNI, CPMNV, XCPMNI, XCPMNV
+      REAL*8 CPMN, CPMNI, CPMNV, XCPMNI, XCPMNV
       REAL*8 PI, HOPI, QOPI, DTOR
       REAL*8 CVPAR, CTERAT, CTRRAT
       REAL*8 XSREF1, XSREF2, XPREF1, XPREF2
@@ -129,12 +129,12 @@ C
      &             PSIO,CIRC,COSA,SINA,QINF,
      &             GAMMA,GAMM1,
      &             MINF1,MINF,MINF_CL,TKLAM,TKL_MSQ,CPSTAR,QSTAR,
-     &             CPMN,XCPMN,CPMNI,CPMNV,XCPMNI,XCPMNV
+     &             CPMN,CPMNI,CPMNV,XCPMNI,XCPMNV
 C
       COMMON/CR11/ PI,HOPI,QOPI,DTOR
       COMMON/CR12/ CVPAR,CTERAT,CTRRAT,XSREF1,XSREF2,XPREF1,XPREF2
       COMMON/CI04/ N,NB,NW,NPAN,IST,
-     &             ITMAX,RETYP,MATYP,AIJPIV(IQX),ICCOR,
+     &             ITMAX,RETYP,MATYP,AIJPIV(IQX),
      &             NCM,NTK
 C---- CR13 (plot sizing) removed -- all variables were plotting-only
       COMMON/CL01/ OK,LIMAGE,SHARP,
@@ -147,7 +147,6 @@ C---- CR13 (plot sizing) removed -- all variables were plotting-only
      &             LIQSET,
      &             LAECEN,
      &             LCMINP, LHMOMP, LFREQP
-      INCLUDE 'QUIET.INC'
       COMMON/CR14/ XB(IBX),YB(IBX),
      &             XBP(IBX),YBP(IBX),SB(IBX),SNEW(4*IBX),
      &             XBF,YBF,XOF,YOF,HMOM,HFX,HFY,
@@ -164,11 +163,13 @@ C
      &             USLP(IVX,ISX),GUXQ(IVX,ISX),GUXD(IVX,ISX),
      &             TAU(IVX,ISX),DIS(IVX,ISX),CTQ(IVX,ISX),
      &             VTI(IVX,ISX),
-     &             REINF1,REINF,REINF_CL,ACRIT,
+     &             REINF1,REINF,REINF_CL,
+     &             ACRIT(ISX),
      &             XSTRIP(ISX),XOCTR(ISX),YOCTR(ISX),XSSITR(ISX),
-     &             UINV_A(IVX,ISX)
+     &             UINV_A(IVX,ISX),
+     &             TINDEX(ISX)
       COMMON/CI05/ IBLTE(ISX),NBL(ISX),IPAN(IVX,ISX),ISYS(IVX,ISX),NSYS,
-     &             ITRAN(ISX)
+     &             ITRAN(ISX), IDAMP
       COMMON/CL02/ TFORCE(ISX)
       COMMON/CR17/ RMSBL,RMXBL,RLX,VACCEL
       COMMON/CI06/ IMXBL,ISMXBL
@@ -190,8 +191,6 @@ C---- save storage space
      &            (Q(1,25),W5(1)), (Q(1,31),W6(1)),
      &            (Q(1,37),W7(1)), (Q(1,43),W8(1))
       EQUIVALENCE (VM(1,1,1),BIJ(1,1)), (VM(1,1,IZX/2),CIJ(1,1))
-C   
-      INCLUDE 'CPCOR.INC'
 C
 C
 C   VERSION     version number of this XFOIL implementation
@@ -427,6 +426,7 @@ C   UINV(..)    BL edge velocity array without mass defect influence
 C   MASS(..)    BL mass defect array  ( = UEDG*DSTR )
 C   THET(..)    BL momentum thickness array
 C   DSTR(..)    BL displacement thickness array
+C   TSTR(..)    BL kin. energy  thickness array
 C   CTAU(..)    sqrt(max shear coefficient) array
 C               (in laminar regions, log of amplification ratio)
 C   TSTR(..)    BL kin. energy  thickness array
@@ -455,6 +455,10 @@ C   ISYS(..)    BL Newton system line number corresponding to BL location
 C   NSYS        total number of lines in BL Newton system
 C   ITRAN(.)    BL array index of transition interval
 C   TFORCE(.)   .TRUE. if transition is forced due to transition strip
+C   TINDEX(.)   
+C
+C   IDAMP    = 0   use original enelope e^n f(H,Rtheta) for all profiles
+C            = 1   use modified enelope e^n f(H,Rtheta) for separating profile
 C
 C   VA,VB(...)  diagonal and off-diagonal blocks in BL Newton system
 C   VZ(..)      way-off-diagonal block at TE station line
@@ -473,4 +477,3 @@ C                which speeds up each iteration, but MAY increase
 C                iteration count)
 C                Can be set to zero for unadulterated Newton method
 C
-

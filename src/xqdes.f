@@ -53,6 +53,7 @@ C--------------------------------------------
 C     Smooths Qspec(s) inside target segment
 C--------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
 cC---- calculate smoothing coordinate
 ccc      IF(NSP.EQ.NC1) THEN
@@ -247,6 +248,7 @@ C     Performs a mixed-inverse calculation using
 C     the specified surface speed array QSPEC.
 C-------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
 C---- distance of internal control point ahead of sharp TE
 C-    (fraction of smaller panel length adjacent to TE)

@@ -1,5 +1,5 @@
 C***********************************************************************
-C    Module:  xfoil.f
+C    Module:  f2py xfoil.f
 C 
 C    Copyright (C) 2000 Mark Drela 
 C 
@@ -18,12 +18,14 @@ C    along with this program; if not, write to the Free Software
 C    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 C***********************************************************************
 C
-      SUBROUTINE INIT
+      SUBROUTINE INITIALISE
 C---------------------------------------------------
 C     Variable initialization/default routine.
 C     See file XFOIL.INC for variable description.
 C---------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'CPCOR.INC'
+      INCLUDE 'QUIET.INC'
 C
       PI = 4.0*ATAN(1.0)
       HOPI = 0.50/PI
@@ -142,7 +144,7 @@ C---- circle plane array size (257, or largest 2  + 1 that will fit array size)
       NC1 = MIN( NC1 , 257 )
 C
 C---- default paneling parameters
-      NPAN = 160
+      NPAN = 240
       CVPAR = 1.0
       CTERAT = 0.15
       CTRRAT = 0.2
@@ -163,7 +165,8 @@ C
 C---- default viscous parameters
       RETYP = 1
       REINF1 = 0.
-      ACRIT = 9.0
+      ACRIT(1) = 9.0
+      ACRIT(2) = 9.0
       XSTRIP(1) = 1.0
       XSTRIP(2) = 1.0
       XOCTR(1) = 1.0
@@ -171,11 +174,10 @@ C---- default viscous parameters
       YOCTR(1) = 0.
       YOCTR(2) = 0.
       WAKLEN = 1.0
-
-      ICCOR = 1   ! default: Karman-Tsien (existing behaviour)
 C
-C---- default amplification-rate method (0 = original DAMPL envelope)
-      CALL IDAMP_SET(0)
+      IDAMP = 0
+      ICCOR = 1
+C
 C
 C---- set BL calibration parameters
       CALL BLPINI
@@ -216,6 +218,7 @@ C     from unit-CL values and specified CLS
 C     depending on MATYP,RETYP flags.
 C-------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
       REAL M_CLS
 C
       CLA = MAX( CLS , 0.000001 )
@@ -300,6 +303,7 @@ C
 
       SUBROUTINE COMSET
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'CPCOR.INC'
 C
 C---- Prandtl-Glauert compressibility factor (common to all corrections)
       BETA     = SQRT(1.0 - MINF**2)
@@ -452,7 +456,7 @@ C
       SA = SIN(ALFA)
       CA = COS(ALFA)
 C
-      BETA     = SQRT(1.0 - MINF**2)
+      BETA = SQRT(1.0 - MINF**2)
       BETA_MSQ = -0.5/BETA
 C
 C---- Cp correction coefficient and its Minf^2 sensitivity.
@@ -469,26 +473,24 @@ C
       CL_MSQ = 0.0
 C
       I = 1
-      CGINC    = 1.0 - (GAM(I)/QINF)**2
+      CGINC = 1.0 - (GAM(I)/QINF)**2
       CPG1     = CGINC/(BETA + BFAC*CGINC)
-      CPG1_MSQ = -CPG1/(BETA + BFAC*CGINC)
-     &           *(BETA_MSQ + BFAC_MSQ*CGINC)
+      CPG1_MSQ = -CPG1/(BETA + BFAC*CGINC)*(BETA_MSQ + BFAC_MSQ*CGINC)
 C
-      CPI_GAM  = -2.0*GAM(I)/QINF**2
-      CPC_CPI  = (1.0 - BFAC*CPG1) / (BETA + BFAC*CGINC)
+      CPI_GAM = -2.0*GAM(I)/QINF**2
+      CPC_CPI = (1.0 - BFAC*CPG1)/ (BETA + BFAC*CGINC)
       CPG1_ALF = CPC_CPI*CPI_GAM*GAM_A(I)
 C
       DO 10 I=1, N
         IP = I+1
         IF(I.EQ.N) IP = 1
 C
-        CGINC    = 1.0 - (GAM(IP)/QINF)**2
+        CGINC = 1.0 - (GAM(IP)/QINF)**2
         CPG2     = CGINC/(BETA + BFAC*CGINC)
-        CPG2_MSQ = -CPG2/(BETA + BFAC*CGINC)
-     &             *(BETA_MSQ + BFAC_MSQ*CGINC)
+        CPG2_MSQ = -CPG2/(BETA + BFAC*CGINC)*(BETA_MSQ + BFAC_MSQ*CGINC)
 C
-        CPI_GAM  = -2.0*GAM(IP)/QINF**2
-        CPC_CPI  = (1.0 - BFAC*CPG2) / (BETA + BFAC*CGINC)
+        CPI_GAM = -2.0*GAM(IP)/QINF**2
+        CPC_CPI = (1.0 - BFAC*CPG2)/ (BETA + BFAC*CGINC)
         CPG2_ALF = CPC_CPI*CPI_GAM*GAM_A(IP)
 C
         DX = (X(IP) - X(I))*CA + (Y(IP) - Y(I))*SA
@@ -500,8 +502,8 @@ C
         AG = 0.5*(CPG2 + CPG1)
 C
         DX_ALF = -(X(IP) - X(I))*SA + (Y(IP) - Y(I))*CA
-        AG_ALF =  0.5*(CPG2_ALF + CPG1_ALF)
-        AG_MSQ =  0.5*(CPG2_MSQ + CPG1_MSQ)
+        AG_ALF = 0.5*(CPG2_ALF + CPG1_ALF)
+        AG_MSQ = 0.5*(CPG2_MSQ + CPG1_MSQ)
 C
         CL     = CL     + DX* AG
         CDP    = CDP    - DY* AG
@@ -511,7 +513,7 @@ C
         CL_ALF = CL_ALF + DX*AG_ALF + AG*DX_ALF
         CL_MSQ = CL_MSQ + DX*AG_MSQ
 C
-        CPG1     = CPG2
+        CPG1 = CPG2
         CPG1_ALF = CPG2_ALF
         CPG1_MSQ = CPG2_MSQ
    10 CONTINUE
@@ -559,178 +561,6 @@ C
       RETURN
       END ! CDCALC
 
-      SUBROUTINE ADDGEOM(XIN, YIN, NIN)
-      INCLUDE 'XFOIL.INC'
-C------------------------------------------------------
-C     Loads airfoil from passed-in coordinate arrays
-C     into the buffer airfoil and does initial
-C     processing (orientation check, normalisation,
-C     spline, geometry parameters, paneling).
-C------------------------------------------------------
-      INTEGER NIN
-      DIMENSION XIN(NIN), YIN(NIN)
-C
-      DATA ANGTOL / 40.0 /
-C
-      IF(NIN.LE.1) THEN
-       IF(.NOT.LQUIET) WRITE(*,*) 'ADDGEOM: No airfoil data supplied.'
-       RETURN
-      ENDIF
-C
-C---- copy incoming coordinates into global buffer airfoil arrays
-      NB = NIN
-      DO 10 I=1, NB
-        XB(I) = XIN(I)
-        YB(I) = YIN(I)
-   10 CONTINUE
-C
-C---- calculate airfoil area assuming counterclockwise ordering
-      AREA = 0.0
-      DO 50 I=1, NB
-        IP = I+1
-        IF(I.EQ.NB) IP = 1
-        AREA = AREA + 0.5*(YB(I)+YB(IP))*(XB(I)-XB(IP))
-   50 CONTINUE
-C
-      IF(AREA.GE.0.0) THEN
-       LCLOCK = .FALSE.
-C       WRITE(*,1010) NB
-      ELSE
-C----- if area is negative (clockwise order), reverse coordinate order
-       LCLOCK = .TRUE.
-C       WRITE(*,1011) NB
-       DO 55 I=1, NB/2
-         XTMP = XB(NB-I+1)
-         YTMP = YB(NB-I+1)
-         XB(NB-I+1) = XB(I)
-         YB(NB-I+1) = YB(I)
-         XB(I) = XTMP
-         YB(I) = YTMP
-   55  CONTINUE
-      ENDIF
-C
-      IF(LNORM) THEN
-       CALL NORM(XB,XBP,YB,YBP,SB,NB)
-C       WRITE(*,1020)
-      ENDIF
-C
-      CALL SCALC(XB,YB,SB,NB)
-      CALL SEGSPL(XB,XBP,SB,NB)
-      CALL SEGSPL(YB,YBP,SB,NB)
-C
-      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB, W1,
-     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
-     &            EI11BA,EI22BA,APX1BA,APX2BA,
-     &            EI11BT,EI22BT,APX1BT,APX2BT,
-     &            THICKB,CAMBRB )
-C
-      XBLE = SEVAL(SBLE,XB,XBP,SB,NB)
-      YBLE = SEVAL(SBLE,YB,YBP,SB,NB)
-      XBTE = 0.5*(XB(1) + XB(NB))
-      YBTE = 0.5*(YB(1) + YB(NB))
-C
-C      WRITE(*,1050) XBLE,YBLE, CHORDB,
-C     &              XBTE,YBTE
-C
-C---- set MSES domain parameters
-      XINL = XBLE - 2.0*CHORDB
-      XOUT = XBLE + 3.0*CHORDB
-      YBOT = YBLE - 2.5*CHORDB
-      YTOP = YBLE + 3.5*CHORDB
-      XINL = AINT(20.0*ABS(XINL/CHORDB)+0.5)/20.0 * SIGN(CHORDB,XINL)
-      XOUT = AINT(20.0*ABS(XOUT/CHORDB)+0.5)/20.0 * SIGN(CHORDB,XOUT)
-      YBOT = AINT(20.0*ABS(YBOT/CHORDB)+0.5)/20.0 * SIGN(CHORDB,YBOT)
-      YTOP = AINT(20.0*ABS(YTOP/CHORDB)+0.5)/20.0 * SIGN(CHORDB,YTOP)
-      WRITE(ISPARS,1005) XINL, XOUT, YBOT, YTOP
- 1005 FORMAT(1X, 4F8.2)
-C
-C---- wipe out old flap hinge location
-      XBF = 0.0
-      YBF = 0.0
-      LBFLAP = .FALSE.
-C
-C---- panel, copy to current airfoil, and check panel corner angles
-      CALL PANGEN(.TRUE.)
-      CALL ABCOPY(.TRUE.)
-      CALL CANG(X,Y,N,0, IMAX,AMAX)
-      IF(ABS(AMAX).GT.ANGTOL .AND. .NOT.LQUIET) THEN
-       WRITE(*,1081) AMAX, IMAX
-      ENDIF
-C
-      RETURN
-C
- 1010 FORMAT(/' Number of input coordinate points:', I4
-     &       /' Counterclockwise ordering')
- 1011 FORMAT(/' Number of input coordinate points:', I4
-     &       /' Clockwise ordering')
- 1020 FORMAT(/' Airfoil has been normalized')
- 1050 FORMAT(/'  LE  x,y  =', 2F10.5,'  |   Chord =',F10.5
-     &       /'  TE  x,y  =', 2F10.5,'  |'                 )
- 1081 FORMAT(
-     &  /' WARNING: Poor input coordinate distribution'
-     &  /'          Excessive panel angle', F7.1,'  at i =', I4
-     &  /'          Repaneling with PANE and/or PPAR suggested'
-     &  /'           (doing GDES,CADD before repaneling _may_'
-     &  /'            improve excessively coarse LE spacing' )
-C
-      END ! ADDGEOM
- 
-      SUBROUTINE NACA(IDES1)
-      INCLUDE 'XFOIL.INC'
-C
-C---- number of points per side
-      NSIDE = IQX/3
-C
-      IF(IDES1 .LE. 0) THEN
-       IF(.NOT.LQUIET) WRITE(*,*) 'NACA: No designation supplied.'
-       RETURN
-      ELSE
-       IDES = IDES1
-      ENDIF
-C
-      ITYPE = 0
-      IF(IDES.LE.25099) ITYPE = 5
-      IF(IDES.LE.9999 ) ITYPE = 4
-C
-      IF(ITYPE.EQ.0) THEN
-       IF(.NOT.LQUIET) WRITE(*,*) 'This designation not implemented.'
-       RETURN
-      ENDIF
-C
-      IF(ITYPE.EQ.4) CALL NACA4(IDES,W1,W2,W3,NSIDE,XB,YB,NB,NAME)
-      IF(ITYPE.EQ.5) CALL NACA5(IDES,W1,W2,W3,NSIDE,XB,YB,NB,NAME)
-      CALL STRIP(NAME,NNAME)
-C
-C---- see if routines didn't recognize designator
-      IF(IDES.EQ.0) RETURN
-C
-      LCLOCK = .FALSE.
-C
-      XBF = 0.0
-      YBF = 0.0
-      LBFLAP = .FALSE.
-C
-      CALL SCALC(XB,YB,SB,NB)
-      CALL SEGSPL(XB,XBP,SB,NB)
-      CALL SEGSPL(YB,YBP,SB,NB)
-C
-      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB, W1,
-     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
-     &            EI11BA,EI22BA,APX1BA,APX2BA,
-     &            EI11BT,EI22BT,APX1BT,APX2BT,
-     &            THICKB,CAMBRB )
-C
-      IF(.NOT.LQUIET) WRITE(*,1200) NB
- 1200 FORMAT(/' Buffer airfoil set using', I4,' points')
-C
-C---- set paneling
-      CALL PANGEN(.TRUE.)
-ccc      CALL PANPLT
-C
-      RETURN
-      END ! NACA
-
-
       SUBROUTINE PANGEN(SHOPAR)
 C---------------------------------------------------
 C     Set paneling distribution from buffer airfoil
@@ -742,6 +572,7 @@ C     by setting a fictitious local curvature of
 C     CTRRAT*(LE curvature) there.
 C---------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
       LOGICAL SHOPAR
 C
       IF(NB.LT.2) THEN
@@ -752,7 +583,7 @@ C
 C
 C---- Number of temporary nodes for panel distribution calculation
 C       exceeds the specified panel number by factor of IPFAC.
-      IPFAC = 3
+C      IPFAC = 3
       IPFAC = 5
 C
 C---- number of airfoil panel points
@@ -1233,43 +1064,6 @@ C
 C
       RETURN
       END ! PANGEN
-
-      SUBROUTINE SETPAN(NPAN_IN, CVPAR_IN, CTERAT_IN, CTRRAT_IN,
-     &                  XSREF1_IN, XSREF2_IN, XPREF1_IN, XPREF2_IN)
-      INCLUDE 'XFOIL.INC'
-C
-      REAL CVPAR_IN, CTERAT_IN, CTRRAT_IN
-      REAL XSREF1_IN, XSREF2_IN, XPREF1_IN, XPREF2_IN
-      INTEGER NPAN_IN
-C
-      IF(NB.LE.1) THEN
-       IF(.NOT.LQUIET) WRITE(*,*)'SETPAN: Buffer airfoil not available.'
-       RETURN
-      ENDIF
-C
-C---- copy input arguments into global common variables
-      NPAN   = NPAN_IN
-      CVPAR  = CVPAR_IN
-      CTERAT = CTERAT_IN
-      CTRRAT = CTRRAT_IN
-      XSREF1 = XSREF1_IN
-      XSREF2 = XSREF2_IN
-      XPREF1 = XPREF1_IN
-      XPREF2 = XPREF2_IN
-C
-C---- clamp panel count to array limit
-      IF(NPAN .GT. IQX-6) THEN
-       NPAN = IQX - 6
-       IF(.NOT.LQUIET) WRITE(*,1000) NPAN
- 1000  FORMAT(1X,'SETPAN: Panel nodes reduced to array limit:',I4)
-      ENDIF
-C
-C---- generate panel distribution and report max corner angle
-      CALL PANGEN(.FALSE.)
-      IF(N.GT.0) CALL CANG(X,Y,N,1,IMAX,AMAX)
-C
-      RETURN
-      END ! SETPAN
 
       SUBROUTINE TECALC
 C-------------------------------------------

@@ -23,6 +23,7 @@ C------------------------------------------------
 C     Finds minimum Cp on dist for cavitation work
 C------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      REAL XCPMN
 C
       XCPMNI = X(1)
       XCPMNV = X(1)
@@ -54,29 +55,6 @@ C
 C
       RETURN
       END ! FCPMIN
-
-      SUBROUTINE MRSHOW(LM,LR)
-      INCLUDE 'XFOIL.INC'
-      LOGICAL LM, LR
-C
-C---- Interactive display removed for library use
-C      IF(LM .OR. LR) WRITE(*,*)
-C      IF(LM) THEN
-C       IF(MATYP.EQ.1) WRITE(*,1100) MINF1
-C       IF(MATYP.EQ.2) WRITE(*,1100) MINF1, ' / sqrt(CL)'
-C       IF(MATYP.EQ.3) WRITE(*,1100) MINF1, ' / CL'
-C      ENDIF
-C      IF(LR) THEN
-C       IF(RETYP.EQ.1) WRITE(*,1200) INT(REINF1)
-C       IF(RETYP.EQ.2) WRITE(*,1200) INT(REINF1), ' / sqrt(CL)'
-C       IF(RETYP.EQ.3) WRITE(*,1200) INT(REINF1), ' / CL'
-C      ENDIF
-C
-      RETURN
-C
- 1100 FORMAT(1X,'M  =' , F10.4, A)
- 1200 FORMAT(1X,'Re =' , I10  , A)
-      END ! MRSHOW
 
       SUBROUTINE MHINGE
 C----------------------------------------------------
@@ -222,6 +200,7 @@ C-----------------------------------
 C     Converges to specified alpha.
 C-----------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
       REAL MINF_CLM, MSQ_CLM
 C
 C---- calculate surface vorticity distributions for alpha = 0, 90 degrees
@@ -308,6 +287,7 @@ C-----------------------------------------
 C     Converges to specified inviscid CL.
 C-----------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
 C---- calculate surface vorticity distributions for alpha = 0, 90 degrees
       IF(.NOT.LGAMU .OR. .NOT.LQAIJ) CALL GGCALC
@@ -374,6 +354,7 @@ C----------------------------------------
 C     Converges viscous operating point
 C----------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
 C---- convergence tolerance
       DATA EPS1 / 1.0E-4 /

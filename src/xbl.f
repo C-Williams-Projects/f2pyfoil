@@ -28,6 +28,7 @@ C     incorporated into the global Newton system.
 C-------------------------------------------------
       INCLUDE 'XFOIL.INC'
       INCLUDE 'XBL.INC'
+      INCLUDE 'QUIET.INC'
       REAL USAV(IVX,2)
       REAL U1_M(2*IVX), U2_M(2*IVX)
       REAL D1_M(2*IVX), D2_M(2*IVX)
@@ -77,7 +78,7 @@ C
       REYBL_RE =         SQRT(HERAT**3) * (1.0+HVRAT)/(HERAT+HVRAT)
       REYBL_MS = REYBL * (1.5/HERAT - 1.0/(HERAT+HVRAT))*HERAT_MS
 C
-      AMCRIT = ACRIT
+      IDAMPV = IDAMP
 C
 C---- save TE thickness
       DWTE = WGAP(1)
@@ -139,6 +140,9 @@ C
       ULE1_A = UINV_A(2,1)
       ULE2_A = UINV_A(2,2)
 C
+      TINDEX(1) = 0.0
+      TINDEX(2) = 0.0
+C
 C**** Go over each boundary layer/wake
       DO 2000 IS=1, 2
 C
@@ -159,6 +163,8 @@ C
 C---- similarity station pressure gradient parameter  x/u du/dx
       IBL = 2
       BULE = 1.0
+C
+      AMCRIT = ACRIT(IS)
 C
 C---- set forced transition arc length position
       CALL XIFSET(IS)
@@ -486,6 +492,14 @@ C
       DUE1 = DUE2
       DDS1 = DDS2
 C      
+      IF(IBL .EQ. ITRAN(IS) .AND. X2 .GT. X1) THEN
+       IF(IS.EQ.1) THEN
+        TINDEX(IS) = FLOAT(IST-ITRAN(IS)+3) - (XT-X1)/(X2-X1)
+       ELSE
+        TINDEX(IS) = FLOAT(IST+ITRAN(IS)-2) + (XT-X1)/(X2-X1)
+       ENDIF
+      ENDIF
+C      
 C---- set BL variables for next station
       DO 190 ICOM=1, NCOM
         COM1(ICOM) = COM2(ICOM)
@@ -544,6 +558,7 @@ C     checking of transition onset is performed.
 C----------------------------------------------------
       INCLUDE 'XFOIL.INC'
       INCLUDE 'XBL.INC'
+      INCLUDE 'QUIET.INC'
       LOGICAL DIRECT
       REAL MSQ
 C
@@ -551,9 +566,11 @@ C---- shape parameters for separation criteria
       HLMAX = 3.8
       HTMAX = 2.5
 C
-      DO 2000 IS=1, 2
+      DO 2000 IS = 1, 2
 C
       IF(.NOT.LQUIET) WRITE(*,*) '   side ', IS, ' ...'
+C
+      AMCRIT = ACRIT(IS)
 C
 C---- set forced transition arc length position
       CALL XIFSET(IS)
@@ -616,7 +633,6 @@ C-------- check for transition and set appropriate flags and things
            CALL TRCHEK
            AMI = AMPL2
 C
-C--------- fixed BUG   MD 7 Jun 99
            IF(TRAN) THEN
             ITRAN(IS) = IBL
             IF(CTI.LE.0.0) THEN
@@ -640,6 +656,7 @@ C
            CALL BLSYS
           ENDIF
 C
+
           IF(DIRECT) THEN
 C
 C--------- try direct mode (set dUe = 0 in currently empty 4th line)
@@ -833,6 +850,7 @@ C------ store primary variables
         DIS(IBL,IS)  =     R2*U2*U2*U2*DI2*HS2*0.5
         CTQ(IBL,IS)  = CQ2
         DELT(IBL,IS) = DE2
+        TSTR(IBL,IS) = HS2*T2
 C
 C------ set "1" variables to "2" variables for next streamwise station
         CALL BLPRV(XSI,AMI,CTI,THI,DSI,DSWAKI,UEI)
@@ -876,6 +894,7 @@ C     checking of transition onset is performed.
 C----------------------------------------------------
       INCLUDE 'XFOIL.INC'
       INCLUDE 'XBL.INC'
+      INCLUDE 'QUIET.INC'
       REAL VTMP(4,5), VZTMP(4)
       REAL MSQ
 ccc   REAL MDI
@@ -886,7 +905,9 @@ C---- constant controlling how far Hk is allowed to deviate
 C-    from the specified value.
       SENSWT = 1000.0
 C
-      DO 2000 IS=1, 2
+      DO 2000 IS = 1, 2
+C
+      AMCRIT = ACRIT(IS)
 C
 C---- set forced transition arc length position
       CALL XIFSET(IS)
@@ -918,6 +939,7 @@ C------ initialize current station to existing variables
         UEI = UEDG(IBL,IS)
         THI = THET(IBL,IS)
         DSI = DSTR(IBL,IS)
+
 CCC        MDI = MASS(IBL,IS)
 C
 C------ fixed BUG   MD 7 June 99
@@ -1152,6 +1174,8 @@ C------ store primary variables
         TAU(IBL,IS)  = 0.5*R2*U2*U2*CF2
         DIS(IBL,IS)  =     R2*U2*U2*U2*DI2*HS2*0.5
         CTQ(IBL,IS)  = CQ2
+        DELT(IBL,IS) = DE2
+        TSTR(IBL,IS) = HS2*T2
 C
 C------ set "1" variables to "2" variables for next streamwise station
         CALL BLPRV(XSI,AMI,CTI,THI,DSI,DSWAKI,UEI)
@@ -1185,6 +1209,7 @@ C-----------------------------------------------------
 C     Sets forced-transition BL coordinate locations.
 C-----------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
       INCLUDE 'XBL.INC'
 C
       IF(XSTRIP(IS).GE.1.0) THEN
@@ -1197,10 +1222,10 @@ C
       CHSQ = CHX**2 + CHY**2
 C
 C---- calculate chord-based x/c, y/c
-      DO I=1, N
+      DO 10 I=1, N
         W1(I) = ((X(I)-XLE)*CHX + (Y(I)-YLE)*CHY) / CHSQ
         W2(I) = ((Y(I)-YLE)*CHX - (X(I)-XLE)*CHY) / CHSQ
-      END DO
+ 10   CONTINUE
 C
       CALL SPLIND(W1,W3,S,N,-999.0,-999.0)
       CALL SPLIND(W2,W4,S,N,-999.0,-999.0)
@@ -1255,6 +1280,7 @@ C        If LALFA=.TRUE. , "AC" is CL
 C        If LALFA=.FALSE., "AC" is alpha
 C------------------------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
       REAL UNEW(IVX,2), U_AC(IVX,2)
       REAL QNEW(IQX),   Q_AC(IQX)
       EQUIVALENCE (VA(1,1,1), UNEW(1,1)) ,
@@ -1404,6 +1430,8 @@ C---- calculate changes in BL variables and under-relaxation if needed
         DO 40 IBL=2, NBL(IS)
           IV = ISYS(IBL,IS)
 C
+
+
 C-------- set changes without underrelaxation
           DCTAU = VDEL(1,1,IV) - DAC*VDEL(1,2,IV)
           DTHET = VDEL(2,1,IV) - DAC*VDEL(2,2,IV)
@@ -1545,7 +1573,9 @@ C---- equate upper wake arrays to lower wake arrays
          TAU(IBLTE(1)+KBL,1) =  TAU(IBLTE(2)+KBL,2)
          DIS(IBLTE(1)+KBL,1) =  DIS(IBLTE(2)+KBL,2)
          CTQ(IBLTE(1)+KBL,1) =  CTQ(IBLTE(2)+KBL,2)
- 6    CONTINUE
+        DELT(IBLTE(1)+KBL,1) = DELT(IBLTE(2)+KBL,2)
+        TSTR(IBLTE(1)+KBL,1) = TSTR(IBLTE(2)+KBL,2)
+    6 CONTINUE
 C
       RETURN
       END
@@ -1581,6 +1611,8 @@ C
       DUXCON = 1.0
 C
       CTCON = 0.5/(GACON**2 * GBCON)
+C
+      CFFAC = 1.0
 C
       RETURN
       END

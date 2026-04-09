@@ -377,6 +377,7 @@ C       - If the 6x6 system is singular (e.g. Xup == Xlo == 0) a
 C         warning is printed and no geometry is loaded.
 C-----------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
       REAL    rle_up, Xup, Zup, Zxxup
       REAL    rle_lo, Xlo, Zlo, Zxxlo

@@ -1,5 +1,6 @@
       REAL*8 SCCON, GACON, GBCON, GCCON
-      REAL*8 DLCON, CTRCON, CTRCEX, DUXCON, CTCON
+      REAL*8 DLCON, CTRCON, CTRCEX, DUXCON
+      REAL*8 CTCON, CFFAC
 C
       COMMON /BLPAR/
      & SCCON,
@@ -10,4 +11,5 @@ C
      & CTRCON,
      & CTRCEX,
      & DUXCON,
-     & CTCON
+     & CTCON,
+     & CFFAC

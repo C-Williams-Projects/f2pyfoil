@@ -79,8 +79,10 @@ C
      &          , REYBL , REYBL_MS, REYBL_RE
      &          , GAMBL, GM1BL, HVRAT
      &          , BULE, XIFORC, AMCRIT
-     &          , SIMI,TRAN,TURB,WAKE
+C
+      COMMON/INT/ SIMI,TRAN,TURB,WAKE
      &          , TRFORC,TRFREE
+     &          , IDAMPV
 C
       COMMON/SYS/ VS1(4,5),VS2(4,5),VSREZ(4),VSR(4),VSM(4),VSX(4)
 C

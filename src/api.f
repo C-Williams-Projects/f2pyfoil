@@ -21,30 +21,156 @@ C
 C---- API subroutines for f2py Python interface
 C
 C=======================================================================
-      SUBROUTINE Initialise()
+      SUBROUTINE INIT()
 C---------------------------------------
 C     Initialises all XFOIL variables.
 C     Must be called before any other API
 C     subroutine.
 C---------------------------------------
-      CALL INIT
-      END SUBROUTINE Initialise
+      CALL INITIALISE
+      END SUBROUTINE INIT
 
 C=======================================================================
-      SUBROUTINE AIRFOIL(X_in, Y_in, N_in)
-C-----------------------------------------------
-C     Loads airfoil coordinates, generates panels.
-C-----------------------------------------------
+      SUBROUTINE Quiet(setting)
+C---------------------------------------------------
+C     Enables/disables solver iteration output.
+C     setting = .TRUE.  suppresses WRITE output
+C     setting = .FALSE. allows WRITE output
+C---------------------------------------------------
+      INCLUDE 'QUIET.INC'
+      LOGICAL setting
+Cf2py intent(in) :: setting
+C
+      LQUIET = setting
+C
+      END SUBROUTINE Quiet
+
+      SUBROUTINE SETGEOM(X_in, Y_in, N_in)
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
+C------------------------------------------------------
+C     Loads airfoil from passed-in coordinate arrays
+C     into the buffer airfoil and does initial
+C     processing (orientation check, normalisation,
+C     spline, geometry parameters, paneling).
+C------------------------------------------------------
       INTEGER N_in
       REAL*8 X_in(N_in), Y_in(N_in)
 Cf2py intent(in) :: X_in, Y_in, N_in
+Cf2py integer intent(hide),depend(X_in) :: N_in = len(X_in)
 C
-      CALL ADDGEOM(X_in, Y_in, N_in)
+      DATA ANGTOL / 40.0 /
 C
-      END SUBROUTINE AIRFOIL
-
+      IF(N_in.LE.1) THEN
+       IF(.NOT.LQUIET) WRITE(*,*) 'No airfoil data supplied.'
+       RETURN
+      ELSEIF(N_in.GT.IBX) THEN
+       IF(.NOT.LQUIET) WRITE(*,*) 'Too many points supplied.'
+       RETURN
+      ELSE
+       IF(.NOT.LQUIET) WRITE(*,*) 'Airfoil set using', N_in, 'points.'
+      ENDIF
+C
+C---- copy incoming coordinates into global buffer airfoil arrays
+      NB = N_in
+      DO 10 I=1, NB
+        XB(I) = X_in(I)
+        YB(I) = Y_in(I)
+   10 CONTINUE
+C
+C---- calculate airfoil area assuming counterclockwise ordering
+      AREA = 0.0
+      DO 50 I=1, NB
+        IP = I+1
+        IF(I.EQ.NB) IP = 1
+        AREA = AREA + 0.5*(YB(I)+YB(IP))*(XB(I)-XB(IP))
+   50 CONTINUE
+C
+      IF(AREA.GE.0.0) THEN
+       LCLOCK = .FALSE.
+C       WRITE(*,1010) NB
+      ELSE
+C----- if area is negative (clockwise order), reverse coordinate order
+       LCLOCK = .TRUE.
+C       WRITE(*,1011) NB
+       DO 55 I=1, NB/2
+         XTMP = XB(NB-I+1)
+         YTMP = YB(NB-I+1)
+         XB(NB-I+1) = XB(I)
+         YB(NB-I+1) = YB(I)
+         XB(I) = XTMP
+         YB(I) = YTMP
+   55  CONTINUE
+      ENDIF
+C
+      IF(LNORM) THEN
+       CALL NORM(XB,XBP,YB,YBP,SB,NB)
+C       WRITE(*,1020)
+      ENDIF
+C
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB, W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+      XBLE = SEVAL(SBLE,XB,XBP,SB,NB)
+      YBLE = SEVAL(SBLE,YB,YBP,SB,NB)
+      XBTE = 0.5*(XB(1) + XB(NB))
+      YBTE = 0.5*(YB(1) + YB(NB))
+C
+C      WRITE(*,1050) XBLE,YBLE, CHORDB,
+C     &              XBTE,YBTE
+C
+C---- set MSES domain parameters
+      XINL = XBLE - 2.0*CHORDB
+      XOUT = XBLE + 3.0*CHORDB
+      YBOT = YBLE - 2.5*CHORDB
+      YTOP = YBLE + 3.5*CHORDB
+      XINL = AINT(20.0*ABS(XINL/CHORDB)+0.5)/20.0 * SIGN(CHORDB,XINL)
+      XOUT = AINT(20.0*ABS(XOUT/CHORDB)+0.5)/20.0 * SIGN(CHORDB,XOUT)
+      YBOT = AINT(20.0*ABS(YBOT/CHORDB)+0.5)/20.0 * SIGN(CHORDB,YBOT)
+      YTOP = AINT(20.0*ABS(YTOP/CHORDB)+0.5)/20.0 * SIGN(CHORDB,YTOP)
+      IF(.NOT.LQUIET) WRITE(ISPARS,1005) XINL, XOUT, YBOT, YTOP
+ 1005 FORMAT(1X, 4F8.2)
+C
+C---- wipe out old flap hinge location
+      XBF = 0.0
+      YBF = 0.0
+      LBFLAP = .FALSE.
+C
+C---- panel, copy to current airfoil, and check panel corner angles
+      CALL PANGEN(.TRUE.)
+      CALL ABCOPY(.TRUE.)
+      CALL CANG(X,Y,N,0, IMAX,AMAX)
+      IF(ABS(AMAX).GT.ANGTOL .AND. .NOT.LQUIET) THEN
+       WRITE(*,1081) AMAX, IMAX
+      ENDIF
+C
+      RETURN
+C
+ 1010 FORMAT(/' Number of input coordinate points:', I4
+     &       /' Counterclockwise ordering')
+ 1011 FORMAT(/' Number of input coordinate points:', I4
+     &       /' Clockwise ordering')
+ 1020 FORMAT(/' Airfoil has been normalized')
+ 1050 FORMAT(/'  LE  x,y  =', 2F10.5,'  |   Chord =',F10.5
+     &       /'  TE  x,y  =', 2F10.5,'  |'                 )
+ 1081 FORMAT(
+     &  /' WARNING: Poor input coordinate distribution'
+     &  /'          Excessive panel angle', F7.1,'  at i =', I4
+     &  /'          Repaneling with PANE and/or PPAR suggested'
+     &  /'           (doing GDES,CADD before repaneling _may_'
+     &  /'            improve excessively coarse LE spacing' )
+C
+      END SUBROUTINE SETGEOM
+      
 C=======================================================================
-      SUBROUTINE NACA_LOAD(desig)
+      SUBROUTINE SETNACA(desig)
 C---------------------------------------------------
 C     Generates and panels a NACA 4 or 5 digit
 C     airfoil from a character designation string.
@@ -52,7 +178,9 @@ C     e.g. desig = "0012" -> NACA 0012
 C          desig = "23015" -> NACA 23015
 C---------------------------------------------------
       INCLUDE 'XFOIL.INC'
-      CHARACTER*10 desig
+      INCLUDE 'QUIET.INC'
+      CHARACTER*(10) desig
+Cf2py character*10 desig
 Cf2py intent(in) :: desig
 C
       INTEGER IDES
@@ -61,11 +189,56 @@ C---- read integer designation from string
 C     "0012" -> 12, "2412" -> 2412, "23015" -> 23015
       READ(desig, *) IDES
 C
-C---- call existing NACA routine which handles 4 and 5 digit cases,
-C     generates buffer airfoil coords and calls PANGEN
-      CALL NACA(IDES)
 C
-      END SUBROUTINE NACA_LOAD
+C---- number of points per side
+      NSIDE = IQX/3
+C
+      IF(IDES .LE. 0) THEN
+       IF(.NOT.LQUIET) WRITE(*,*) 'NACA: No designation supplied.'
+      ENDIF
+C
+      ITYPE = 0
+      IF(IDES.LE.25099) ITYPE = 5
+      IF(IDES.LE.9999 ) ITYPE = 4
+C
+      IF(ITYPE.EQ.0) THEN
+       IF(.NOT.LQUIET) WRITE(*,*) 'This designation not implemented.'
+       RETURN
+      ENDIF
+C
+      IF(ITYPE.EQ.4) CALL NACA4(IDES,W1,W2,W3,NSIDE,XB,YB,NB,NAME)
+      IF(ITYPE.EQ.5) CALL NACA5(IDES,W1,W2,W3,NSIDE,XB,YB,NB,NAME)
+      CALL STRIP(NAME,NNAME)
+C
+C---- see if routines didn't recognize designator
+      IF(IDES.EQ.0) RETURN
+C
+      LCLOCK = .FALSE.
+C
+      XBF = 0.0
+      YBF = 0.0
+      LBFLAP = .FALSE.
+C
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB, W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+      IF(.NOT.LQUIET) WRITE(*,1200) NB
+ 1200 FORMAT(/' Buffer airfoil set using', I4,' points')
+C
+C---- set paneling
+      CALL PANGEN(.TRUE.)
+ccc      CALL PANPLT
+C
+      RETURN
+C
+      END SUBROUTINE SETNACA
 C
 C=======================================================================
       SUBROUTINE SETCST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
@@ -130,7 +303,7 @@ C
 C
 
 C=======================================================================
-      SUBROUTINE SETCON(Re, Ma)
+      SUBROUTINE FLOWCONS(Re, Ma)
 C---------------------------------------------------
 C     Sets Reynolds and Mach numbers.
 C     Setting Re > 0 automatically enables viscous
@@ -152,7 +325,7 @@ C
       CALL MRCL(1.0, MINF_CLM, REINF_CLM)
       CALL COMSET
 C
-      END SUBROUTINE SETCON
+      END SUBROUTINE FLOWCONS
 C
 C=======================================================================
       SUBROUTINE SETCCOR(icor)
@@ -162,16 +335,15 @@ C     icor = 0  Prandtl-Glauert
 C     icor = 1  Karman-Tsien  (default)
 C     icor = 2  Laitone
 C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
+      INCLUDE 'CPCOR.INC'
       INTEGER icor
 Cf2py intent(in) :: icor
       ICCOR = icor
-      LVCONV = .FALSE.
       CALL COMSET
       END SUBROUTINE SETCCOR
 C
 C=======================================================================
-      SUBROUTINE SETITER(Iter)
+      SUBROUTINE MAXITER(Iter)
 C---------------------------------------------------
 C     Sets the maximum number of viscous iterations.
 C---------------------------------------------------
@@ -181,10 +353,10 @@ Cf2py intent(in) :: Iter
 C
       ITMAX = Iter
 C
-      END SUBROUTINE SETITER
+      END SUBROUTINE MAXITER
 C
 C=======================================================================
-      SUBROUTINE TRPARS(Xtrip1, Xtrip2, Ncrit)
+      SUBROUTINE SETTRIP(Xtrip1, Xtrip2)
 C---------------------------------------------------
 C     Sets transition parameters.
 C     Xtrip1: upper surface trip x/c location
@@ -195,14 +367,73 @@ C     Xtrip > 1.0 means no forced transition.
 C     Negative Xtrip = -s/s_side arc length fraction.
 C---------------------------------------------------
       INCLUDE 'XFOIL.INC'
-      REAL*8 Xtrip1, Xtrip2, Ncrit
-Cf2py intent(in) :: Xtrip1, Xtrip2, Ncrit
+      REAL*8 Xtrip1, Xtrip2
+Cf2py intent(in) :: Xtrip1, Xtrip2
 C
       XSTRIP(1) = Xtrip1
       XSTRIP(2) = Xtrip2
-      ACRIT     = Ncrit
 C
-      END SUBROUTINE TRPARS
+      END SUBROUTINE SETTRIP
+C=======================================================================
+      SUBROUTINE SETNCRIT(Ncrit)
+C---------------------------------------------------
+C     Sets transition parameters.
+C     Xtrip1: upper surface trip x/c location
+C     Xtrip2: lower surface trip x/c location
+C     Ncrit:  log of critical amplification ratio
+C
+C     Xtrip > 1.0 means no forced transition.
+C     Negative Xtrip = -s/s_side arc length fraction.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 Ncrit
+Cf2py intent(in) :: Ncrit
+C
+      ACRIT(1)  = Ncrit
+      ACRIT(2)  = Ncrit
+C
+      END SUBROUTINE SETNCRIT
+C=======================================================================
+      SUBROUTINE SETNCRIT12(Ncrit1, Ncrit2)
+C---------------------------------------------------
+C     Sets transition parameters.
+C     Xtrip1: upper surface trip x/c location
+C     Xtrip2: lower surface trip x/c location
+C     Ncrit:  log of critical amplification ratio
+C
+C     Xtrip > 1.0 means no forced transition.
+C     Negative Xtrip = -s/s_side arc length fraction.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 Ncrit1, Ncrit2
+Cf2py intent(in) :: Ncrit1, Ncrit2
+C
+      ACRIT(1)  = Ncrit1
+      ACRIT(2)  = Ncrit2
+C
+      END SUBROUTINE SETNCRIT12
+
+C=======================================================================
+      SUBROUTINE PANEL()
+C---------------------------------------------------
+C     Sets paneling parameters and re-panels the
+C     airfoil if geometry has been loaded.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+C---- re-panel only if buffer airfoil exists
+      IF(NB .GT. 0) THEN
+        CALL PANGEN(.TRUE.)
+C
+C------ reset all dependent flags
+        LGAMU  = .FALSE.
+        LQAIJ  = .FALSE.
+        LWAKE  = .FALSE.
+        LBLINI = .FALSE.
+        LIPAN  = .FALSE.
+        LVCONV = .FALSE.
+      ENDIF
+C
+      END SUBROUTINE PANEL
 
 C=======================================================================
       SUBROUTINE REPANEL(NPan_in, CVPar_in, CTERat_in, CTRRat_in,
@@ -242,22 +473,7 @@ C
       END SUBROUTINE REPANEL
 
 C=======================================================================
-      SUBROUTINE Quiet(setting)
-C---------------------------------------------------
-C     Enables/disables solver iteration output.
-C     setting = .TRUE.  suppresses WRITE output
-C     setting = .FALSE. allows WRITE output
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      LOGICAL setting
-Cf2py intent(in) :: setting
-C
-      LQUIET = setting
-C
-      END SUBROUTINE Quiet
-
-C=======================================================================
-      SUBROUTINE INIT_BL()
+      SUBROUTINE RESETBL()
 C---------------------------------------------------
 C     Resets boundary layer initialisation flags.
 C     Call between sequential analyses to force
@@ -268,10 +484,10 @@ C
       LBLINI = .FALSE.
       LIPAN  = .FALSE.
 C
-      END SUBROUTINE INIT_BL
+      END SUBROUTINE RESETBL
 
 C=======================================================================
-      SUBROUTINE alpha(alpha_deg,
+      SUBROUTINE ALPHA(alpha_deg,
      &                 cl_out, cd_out, cm_out,
      &                 xtu_out, xtb_out, conv_out)
 C---------------------------------------------------
@@ -317,10 +533,10 @@ C
       xtu_out = XOCTR(1)
       xtb_out = XOCTR(2)
 C
-      END SUBROUTINE alpha
+      END SUBROUTINE ALPHA
 
 C=======================================================================
-      SUBROUTINE ASeq(alpha_i, alpha_f, n_alpha,
+      SUBROUTINE ASEQ(alpha_i, alpha_f, n_alpha,
      &                a_arr, cl_arr, cd_arr, cm_arr,
      &                xtu_arr, xtb_arr, conv_arr)
 C---------------------------------------------------
@@ -385,10 +601,10 @@ C
         xtb_arr(i) = XOCTR(2)
       ENDDO
 C
-      END SUBROUTINE ASeq
+      END SUBROUTINE ASEQ
 
 C=======================================================================
-      SUBROUTINE runCL(cl_val,
+      SUBROUTINE SCL(cl_val,
      &                   a_out, cl_out, cd_out, cm_out, 
      &                   xtu_out, xtb_out, conv_out)
 C---------------------------------------------------
@@ -441,10 +657,10 @@ C
       xtu_out = XOCTR(1)
       xtb_out = XOCTR(2)
 C
-      END SUBROUTINE runCL
+      END SUBROUTINE SCL
 
 C=======================================================================
-      SUBROUTINE CSeq(cl_start, cl_end, n_step,
+      SUBROUTINE CSEQ(cl_start, cl_end, n_step,
      &                a_arr, cl_arr, cd_arr, cm_arr, xtu_arr, xtb_arr,
      &                conv_arr)
 C---------------------------------------------------
@@ -513,79 +729,7 @@ C
 C
       ENDDO
 C
-      END SUBROUTINE CSeq
-
-C=======================================================================
-      SUBROUTINE GETN(n_out)
-C---------------------------------------------------
-C     Returns the number of panel nodes for GET_CP.
-C     Call this first to allocate the buffer, then
-C     pass the result directly to GET_CP.
-C
-C     Output: n_out  exact number of panel nodes (= N)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER n_out
-Cf2py intent(out) :: n_out
-C
-      n_out = N
-C
-      END SUBROUTINE GETN
-
-C=======================================================================
-      SUBROUTINE GETCP(cp_arr, n_in)
-C---------------------------------------------------
-C     Returns pressure coefficient distribution.
-C     Returns CPV if viscous, CPI if inviscid.
-C     Call GETN first to obtain n_in.
-C
-C     Input:  n_in   number of panel nodes (= N from GETN)
-C     Output: cp_arr Cp values (1:n_in)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER n_in
-      REAL*8 cp_arr(n_in)
-Cf2py intent(in)  :: n_in
-Cf2py intent(out) :: cp_arr
-C
-      INTEGER i
-C
-      IF(LVISC) THEN
-        DO i = 1, n_in
-          cp_arr(i) = CPV(i)
-        ENDDO
-      ELSE
-        DO i = 1, n_in
-          cp_arr(i) = CPI(i)
-        ENDDO
-      ENDIF
-C
-      END SUBROUTINE GETCP
-
-C=======================================================================
-      SUBROUTINE GETAIRFOIL(x_arr, y_arr, n_in)
-C---------------------------------------------------
-C     Returns current airfoil panel coordinates.
-C     Call GETN first to obtain n_in.
-C
-C     Input:  n_in   number of panel nodes (= N from GETN)
-C     Output: x_arr  x coordinates (1:n_in)
-C             y_arr  y coordinates (1:n_in)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER n_in
-      REAL*8 x_arr(n_in), y_arr(n_in)
-Cf2py intent(in)  :: n_in
-Cf2py intent(out) :: x_arr, y_arr
-C
-      INTEGER i
-C
-      DO i = 1, n_in
-        x_arr(i) = X(i)
-        y_arr(i) = Y(i)
-      ENDDO
-C
-      END SUBROUTINE GETAIRFOIL
+      END SUBROUTINE CSEQ
 
 C=======================================================================
       SUBROUTINE GETNB(n_out)
@@ -657,9 +801,118 @@ C
       END SUBROUTINE GETNBL
 
 C=======================================================================
-      SUBROUTINE GETBL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
-     &                  thet_arr, cf_arr, hk_arr, cdis_arr, ct_arr,
-     &                  hstar_arr, P_arr, m_arr, K_arr,
+      SUBROUTINE GETN(n_out)
+C---------------------------------------------------
+C     Returns the number of panel nodes for GET_CP.
+C     Call this first to allocate the buffer, then
+C     pass the result directly to GET_CP.
+C
+C     Output: n_out  exact number of panel nodes (= N)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_out
+Cf2py intent(out) :: n_out
+C
+      n_out = N
+C
+      END SUBROUTINE GETN
+
+C=======================================================================
+      SUBROUTINE GETGEOM(x_arr, y_arr, n_in)
+C---------------------------------------------------
+C     Returns current airfoil panel coordinates.
+C     Call GETN first to obtain n_in.
+C
+C     Input:  n_in   number of panel nodes (= N from GETN)
+C     Output: x_arr  x coordinates (1:n_in)
+C             y_arr  y coordinates (1:n_in)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 x_arr(n_in), y_arr(n_in)
+Cf2py intent(in)  :: n_in
+Cf2py intent(out) :: x_arr, y_arr
+C
+      INTEGER i
+C
+      DO i = 1, n_in
+        x_arr(i) = X(i)
+        y_arr(i) = Y(i)
+      ENDDO
+C
+      END SUBROUTINE GETGEOM
+
+C=======================================================================
+      SUBROUTINE GETCP(cp_arr, n_in)
+C---------------------------------------------------
+C     Returns pressure coefficient distribution.
+C     Returns CPV if viscous, CPI if inviscid.
+C     Call GETN first to obtain n_in.
+C
+C     Input:  n_in   number of panel nodes (= N from GETN)
+C     Output: cp_arr Cp values (1:n_in)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 cp_arr(n_in)
+Cf2py intent(in)  :: n_in
+Cf2py intent(out) :: cp_arr
+C
+      INTEGER i
+C
+      IF(LVISC) THEN
+        DO i = 1, n_in
+          cp_arr(i) = CPV(i)
+        ENDDO
+      ELSE
+        DO i = 1, n_in
+          cp_arr(i) = CPI(i)
+        ENDDO
+      ENDIF
+C
+      END SUBROUTINE GETCP
+
+C=======================================================================
+      SUBROUTINE GETCF(cf_arr, n_in)
+C---------------------------------------------------
+C     Returns pressure coefficient distribution.
+C     Returns CPV if viscous, CPI if inviscid.
+C     Call GETN first to obtain n_in.
+C
+C     Input:  n_in   number of panel nodes (= N from GETN)
+C     Output: cp_arr Cp values (1:n_in)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 cf_arr(n_in)
+Cf2py intent(in)  :: n_in
+Cf2py intent(out) :: cf_arr
+C
+      INTEGER i
+C
+      DO 10 i = 1, N
+        IS = 1
+        IF(GAM(i) .LT. 0.0) IS = 2
+C
+        IF(LIPAN .AND. LVISC) THEN
+          IF(IS .EQ. 1) THEN
+            IBL = IBLTE(1) - i + 1
+          ELSE
+            IBL = IBLTE(2) + i - N
+          ENDIF
+          CF   = TAU(IBL,IS) / (0.5*QINF**2)
+        ELSE
+          CF   = 0.0
+        ENDIF
+C
+        cf_arr(i)    = CF
+  10  CONTINUE
+C
+      END SUBROUTINE GETCF
+
+C=======================================================================
+      SUBROUTINE GETBL(x_arr, y_arr, ue_arr, dstr_arr,
+     &                  thet_arr, tstr_arr, hk_arr, 
      &                  n_in)
 C---------------------------------------------------
 C     Returns boundary layer data for airfoil panel
@@ -674,12 +927,123 @@ C             y_arr     y coordinates
 C             ue_arr    edge velocity Ue/Vinf (Karman-Tsien corrected)
 C             dstr_arr  displacement thickness  (Dstar)
 C             thet_arr  momentum thickness      (Theta)
-C             cf_arr    skin friction coefficient
+C             tstr_arr  energy thickness        (Tstar)
 C             hk_arr    kinematic shape factor Hk
+C             cf_arr    skin friction coefficient
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'XBL.INC'
+      INTEGER n_in
+      REAL*8 x_arr(n_in), y_arr(n_in)
+      REAL*8 ue_arr(n_in), dstr_arr(n_in), thet_arr(n_in)
+      REAL*8 tstr_arr(n_in),  hk_arr(n_in)    
+Cf2py intent(in)  :: n_in
+Cf2py intent(out) :: s_arr, x_arr, y_arr, ue_arr, dstr_arr, thet_arr
+Cf2py intent(out) :: tstr_arr, hk_arr
+C
+      INTEGER i, j, k, IS, IBL
+      REAL*8 DS, TH, TS, CF, H, HS, UE, UI, AMSQ, HK, DUMMY
+C
+C---- update compressibility parameters (HSTINV, TKLAM, etc.)
+      CALL COMSET
+C
+C---- airfoil nodes (indices 1:N)
+      DO 10 i = 1, N
+        IS = 1
+        IF(GAM(i) .LT. 0.0) IS = 2
+C
+        IF(LIPAN .AND. LVISC) THEN
+          IF(IS .EQ. 1) THEN
+            IBL = IBLTE(1) - i + 1
+          ELSE
+            IBL = IBLTE(2) + i - N
+          ENDIF
+          DS   = DSTR(IBL,IS)
+          TH   = THET(IBL,IS)
+          TS   = TSTR(IBL,IS)
+          IF(TH .EQ. 0.0) THEN
+            H  = 1.0
+            HS = 1.0
+          ELSE
+            H  = DS/TH
+          ENDIF
+        ELSE
+          DS   = 0.0
+          TH   = 0.0
+          TS   = 0.0
+          H    = 1.0
+        ENDIF
+C
+        UE   = (GAM(i)/QINF) * (1.0-TKLAM) /
+     &         (1.0 - TKLAM*(GAM(i)/QINF)**2)
+        AMSQ = UE*UE*HSTINV / (GAMM1*(1.0 - 0.5*UE*UE*HSTINV))
+        CALL HKIN(H, AMSQ, HK, DUMMY, DUMMY)
+C
+        x_arr(i)     = X(i)
+        y_arr(i)     = Y(i)
+        ue_arr(i)    = UE
+        dstr_arr(i)  = DS
+        thet_arr(i)  = TH
+        tstr_arr(i)  = TS
+        hk_arr(i)    = HK
+  10  CONTINUE
+C
+C---- wake nodes (indices N+1:N+NW) if wake solution exists
+C     H*, P, m, K are not defined in the wake; set to zero
+      IF(LWAKE) THEN
+        IS = 2
+        DO 20 j = 1, NW
+          i   = N + j
+          k   = N + j
+          IBL = IBLTE(2) + j
+          DS  = DSTR(IBL,IS)
+          TH  = THET(IBL,IS)
+          IF(TH .EQ. 0.0) THEN
+            H = 1.0
+          ELSE
+            H = DS/TH
+          ENDIF
+          UI   = UEDG(IBL,IS)
+          UE   = (UI/QINF) * (1.0-TKLAM) /
+     &           (1.0 - TKLAM*(UI/QINF)**2)
+          AMSQ = UE*UE*HSTINV / (GAMM1*(1.0 - 0.5*UE*UE*HSTINV))
+          CALL HKIN(H, AMSQ, HK, DUMMY, DUMMY)
+C
+          x_arr(k)     = X(i)
+          y_arr(k)     = Y(i)
+          ue_arr(k)    = UE
+          dstr_arr(k)  = DS
+          thet_arr(k)  = TH
+          tstr_arr(k)  = TS
+          hk_arr(k)    = HK
+  20    CONTINUE
+      ENDIF
+C
+      END SUBROUTINE GETBL
+
+C=======================================================================
+      SUBROUTINE GETBLALL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
+     &                  thet_arr, hk_arr, cdis_arr, ct_arr,
+     &                   P_arr, m_arr, K_arr,
+     &                  n_in)
+C---------------------------------------------------
+C     Returns boundary layer data for airfoil panel
+C     nodes and (if a wake solution exists) wake nodes.
+C     Derived from BLDUMP without file I/O.
+C     Call GET_BL_N first to obtain n_in.
+C
+C     Input:  n_in      number of BL data points (= N+NW from GET_BL_N)
+C     Output: s_arr     arc length along surface
+C             x_arr     x coordinates
+C             y_arr     y coordinates
+C             ue_arr    edge velocity Ue/Vinf (Karman-Tsien corrected)
+C             dstr_arr  displacement thickness  (Dstar)
+C             thet_arr  momentum thickness      (Theta)
+C              tstr_arr  energy thickness        (Tstar)
+C             hk_arr    kinematic shape factor Hk
+C             cf_arr    skin friction coefficient
 C             cdis_arr  dissipation coefficient
 C             ct_arr    sqrt(max shear stress coefficient)
-C             hstar_arr kinematic energy shape factor H* (= Tstar/Theta)
-C                       zero for wake nodes
 C             P_arr     kinematic momentum flux (= Theta * Ue^2)
 C                       zero for wake nodes
 C             m_arr     kinematic mass flux      (= Dstar * Ue)
@@ -692,15 +1056,15 @@ C---------------------------------------------------
       INTEGER n_in
       REAL*8 s_arr(n_in),     x_arr(n_in),    y_arr(n_in)
       REAL*8 ue_arr(n_in),    dstr_arr(n_in), thet_arr(n_in)
-      REAL*8 cf_arr(n_in),    hk_arr(n_in)
+      REAL*8 tstr_arr(n_in), hk_arr(n_in)
       REAL*8 cdis_arr(n_in),  ct_arr(n_in)
-      REAL*8 hstar_arr(n_in), P_arr(n_in), m_arr(n_in), K_arr(n_in)
+      REAL*8 P_arr(n_in), m_arr(n_in), K_arr(n_in)
 Cf2py intent(in)  :: n_in
 Cf2py intent(out) :: s_arr, x_arr, y_arr, ue_arr, dstr_arr, thet_arr
-Cf2py intent(out) :: cf_arr, hk_arr, cdis_arr, ct_arr
-Cf2py intent(out) :: hstar_arr, P_arr, m_arr, K_arr
+Cf2py intent(out) :: tstr_arr, hk_arr, cdis_arr, ct_arr
+Cf2py intent(out) :: P_arr, m_arr, K_arr
 C
-      INTEGER i, j, k, IS, IBL, nw_out
+      INTEGER i, j, k, IS, IBL
       REAL*8 DS, TH, TS, CF, H, HS, UE, UI, AMSQ, HK, CDIS, CT, DUMMY
 C
 C---- update compressibility parameters (HSTINV, TKLAM, etc.)
@@ -720,13 +1084,10 @@ C
           DS   = DSTR(IBL,IS)
           TH   = THET(IBL,IS)
           TS   = TSTR(IBL,IS)
-          CF   = TAU(IBL,IS) / (0.5*QINF**2)
           IF(TH .EQ. 0.0) THEN
             H  = 1.0
-            HS = 1.0
           ELSE
             H  = DS/TH
-            HS = TS/TH
           ENDIF
           CDIS = DIS(IBL,IS)  / QINF**3
           CT   = CTAU(IBL,IS)
@@ -734,9 +1095,7 @@ C
           DS   = 0.0
           TH   = 0.0
           TS   = 0.0
-          CF   = 0.0
           H    = 1.0
-          HS   = 2.0
           CDIS = 0.0
           CT   = 0.0
         ENDIF
@@ -752,11 +1111,10 @@ C
         ue_arr(i)    = UE
         dstr_arr(i)  = DS
         thet_arr(i)  = TH
-        cf_arr(i)    = CF
+        tstr_arr(i)  = TS
         hk_arr(i)    = HK
         cdis_arr(i)  = CDIS
         ct_arr(i)    = CT
-        hstar_arr(i) = HS
         P_arr(i)     = TH * UE**2
         m_arr(i)     = DS * UE
         K_arr(i)     = TS * UE**3
@@ -772,7 +1130,7 @@ C     H*, P, m, K are not defined in the wake; set to zero
           IBL = IBLTE(2) + j
           DS  = DSTR(IBL,IS)
           TH  = THET(IBL,IS)
-          CF  = 0.0
+          TS  = TSTR(IBL,IS)
           IF(TH .EQ. 0.0) THEN
             H = 1.0
           ELSE
@@ -792,18 +1150,17 @@ C
           ue_arr(k)    = UE
           dstr_arr(k)  = DS
           thet_arr(k)  = TH
-          cf_arr(k)    = CF
+          tstr_arr(k)  = TS
           hk_arr(k)    = HK
           cdis_arr(k)  = CDIS
           ct_arr(k)    = CT
-          hstar_arr(k) = 0.0
           P_arr(k)     = 0.0
           m_arr(k)     = 0.0
           K_arr(k)     = 0.0
   20    CONTINUE
       ENDIF
 C
-      END SUBROUTINE GETBL
+      END SUBROUTINE GETBLALL
 
 C=======================================================================
 C---- GDES menu wrappers

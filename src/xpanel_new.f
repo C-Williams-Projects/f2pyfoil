@@ -986,6 +986,7 @@ C     for alpha = 0, 90  degrees.  These are superimposed
 C     in SPECAL or SPECCL for specified alpha or CL.
 C--------------------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
 C---- distance of internal control point ahead of sharp TE
 C-    (fraction of smaller panel length adjacent to TE)
@@ -1147,6 +1148,7 @@ C     Calculates source panel influence coefficient
 C     matrix for current airfoil and wake geometry.
 C-----------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
       IF(.NOT.LQUIET) WRITE(*,*)
      &    'Calculating source influence matrix ...'
@@ -1265,10 +1267,11 @@ C
 
       SUBROUTINE XYWAKE
 C-----------------------------------------------------
-C     Sets wake coordinate array for current surface 
+C     Sets wake coordinate array for current surface
 C     vorticity and/or mass source distributions.
 C-----------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
       IF(.NOT.LQUIET) WRITE(*,*) 'Calculating wake trajectory ...'
 C
@@ -1346,10 +1349,11 @@ C
 
       SUBROUTINE STFIND
 C-----------------------------------------
-C     Locates stagnation point arc length 
+C     Locates stagnation point arc length
 C     location SST and panel index IST.
 C-----------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
       DO 10 I=1, N-1
         IF(GAM(I).GE.0.0 .AND. GAM(I+1).LT.0.0) GO TO 11
@@ -1388,6 +1392,7 @@ C-------------------------------------------------------------
 C     Sets  BL location -> panel location  pointer array IPAN
 C-------------------------------------------------------------
       INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
 C
 C---- top surface first
       IS = 1
