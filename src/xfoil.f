@@ -189,6 +189,11 @@ C
 C---- drop tolerance for BL system solver
       VACCEL = 0.01
 C
+C---- BL solver relaxation parameters
+      RLXPAR_DHI  = 1.5
+      RLXPAR_DLO  = -0.5
+      RLXPAR_DNUE = 0.25
+C
 C---- inverse-mapping auto-filter level
       FFILT = 0.0
 C

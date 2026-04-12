@@ -1422,8 +1422,8 @@ C
       RMSBL = 0.
       RMXBL = 0.
 C
-      DHI = 1.5
-      DLO = -.5
+      DHI = RLXPAR_DHI
+      DLO = RLXPAR_DLO
 C
 C---- calculate changes in BL variables and under-relaxation if needed
       DO 4 IS=1, 2
@@ -1444,7 +1444,7 @@ C-------- normalize changes
           IF(IBL.GE.ITRAN(IS)) DN1 = DCTAU / CTAU(IBL,IS)
           DN2 = DTHET / THET(IBL,IS)
           DN3 = DDSTR / DSTR(IBL,IS)
-          DN4 = ABS(DUEDG)/0.25
+          DN4 = ABS(DUEDG)/RLXPAR_DNUE
 C
 C-------- accumulate for rms change
           RMSBL = RMSBL + DN1**2 + DN2**2 + DN3**2 + DN4**2

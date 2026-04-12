@@ -356,6 +356,28 @@ C
       END SUBROUTINE MAXITER
 C
 C=======================================================================
+      SUBROUTINE SETBLRLX(DHI_in, DLO_in, DNUE_in)
+C---------------------------------------------------
+C     Sets BL solver relaxation parameters.
+C     DHI_in:  high limit for normalized change (default 1.5)
+C     DLO_in:  low limit for normalized change (default -0.5)
+C     DNUE_in: Ue normalization divisor (default 0.25)
+C
+C     Tighter values (e.g. 0.8, -0.3, 0.10) reduce
+C     sensitivity to platform math library differences
+C     at the cost of more iterations.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 DHI_in, DLO_in, DNUE_in
+Cf2py intent(in) :: DHI_in, DLO_in, DNUE_in
+C
+      RLXPAR_DHI  = DHI_in
+      RLXPAR_DLO  = DLO_in
+      RLXPAR_DNUE = DNUE_in
+C
+      END SUBROUTINE SETBLRLX
+C
+C=======================================================================
       SUBROUTINE SETTRIP(Xtrip1, Xtrip2)
 C---------------------------------------------------
 C     Sets transition parameters.
@@ -938,7 +960,7 @@ C---------------------------------------------------
       REAL*8 ue_arr(n_in), dstr_arr(n_in), thet_arr(n_in)
       REAL*8 tstr_arr(n_in),  hk_arr(n_in)    
 Cf2py intent(in)  :: n_in
-Cf2py intent(out) :: s_arr, x_arr, y_arr, ue_arr, dstr_arr, thet_arr
+Cf2py intent(out) :: x_arr, y_arr, ue_arr, dstr_arr, thet_arr
 Cf2py intent(out) :: tstr_arr, hk_arr
 C
       INTEGER i, j, k, IS, IBL
@@ -1020,6 +1042,126 @@ C
       ENDIF
 C
       END SUBROUTINE GETBL
+
+C=======================================================================
+      SUBROUTINE GETMOREBL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
+     &                  thet_arr, tstr_arr, hk_arr, hstr_arr, 
+     &                  n_in)
+C---------------------------------------------------
+C     Returns boundary layer data for airfoil panel
+C     nodes and (if a wake solution exists) wake nodes.
+C     Derived from BLDUMP without file I/O.
+C     Call GET_BL_N first to obtain n_in.
+C
+C     Input:  n_in      number of BL data points (= N+NW from GET_BL_N)
+C     Output: s_arr     arc length along surface
+C             x_arr     x coordinates
+C             y_arr     y coordinates
+C             ue_arr    edge velocity Ue/Vinf (Karman-Tsien corrected)
+C             dstr_arr  displacement thickness  (Dstar)
+C             thet_arr  momentum thickness      (Theta)
+C             tstr_arr  energy thickness        (Tstar)
+C             hk_arr    kinematic shape factor Hk
+C             cf_arr    skin friction coefficient
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'XBL.INC'
+      INTEGER n_in
+      REAL*8 s_arr(n_in), x_arr(n_in), y_arr(n_in)
+      REAL*8 ue_arr(n_in), dstr_arr(n_in), thet_arr(n_in)
+      REAL*8 tstr_arr(n_in),  hk_arr(n_in), hstr_arr(n_in)    
+Cf2py intent(in)  :: n_in
+Cf2py intent(out) :: s_arr, x_arr, y_arr, ue_arr, dstr_arr, thet_arr
+Cf2py intent(out) :: tstr_arr, hk_arr, hstr_arr
+C
+      INTEGER i, j, k, IS, IBL
+      REAL*8 DS, TH, TS, CF, H, HS, UE, UI, AMSQ, HK, DUMMY
+C
+C---- update compressibility parameters (HSTINV, TKLAM, etc.)
+      CALL COMSET
+C
+C---- airfoil nodes (indices 1:N)
+      DO 10 i = 1, N
+        IS = 1
+        IF(GAM(i) .LT. 0.0) IS = 2
+C
+        IF(LIPAN .AND. LVISC) THEN
+          IF(IS .EQ. 1) THEN
+            IBL = IBLTE(1) - i + 1
+          ELSE
+            IBL = IBLTE(2) + i - N
+          ENDIF
+          DS   = DSTR(IBL,IS)
+          TH   = THET(IBL,IS)
+          TS   = TSTR(IBL,IS)
+          IF(TH .EQ. 0.0) THEN
+            H  = 1.0
+            HS = 1.0
+          ELSE
+            H  = DS/TH
+            HS = TS/TH
+          ENDIF
+        ELSE
+          DS   = 0.0
+          TH   = 0.0
+          TS   = 0.0
+          H    = 1.0
+          HS   = 2.0
+        ENDIF
+C
+        UE   = (GAM(i)/QINF) * (1.0-TKLAM) /
+     &         (1.0 - TKLAM*(GAM(i)/QINF)**2)
+        AMSQ = UE*UE*HSTINV / (GAMM1*(1.0 - 0.5*UE*UE*HSTINV))
+        CALL HKIN(H, AMSQ, HK, DUMMY, DUMMY)
+C
+        s_arr(i)     = S(i)
+        x_arr(i)     = X(i)
+        y_arr(i)     = Y(i)
+        ue_arr(i)    = UE
+        dstr_arr(i)  = DS
+        thet_arr(i)  = TH
+        tstr_arr(i)  = TS
+        hk_arr(i)    = HK
+        hstr_arr(i)  = HS
+  10  CONTINUE
+C
+C---- wake nodes (indices N+1:N+NW) if wake solution exists
+C     H*, P, m, K are not defined in the wake; set to zero
+      IF(LWAKE) THEN
+        IS = 2
+        DO 20 j = 1, NW
+          i   = N + j
+          k   = N + j
+          IBL = IBLTE(2) + j
+          DS  = DSTR(IBL,IS)
+          TH  = THET(IBL,IS)
+          TS   = TSTR(IBL,IS)
+          IF(TH .EQ. 0.0) THEN
+            H = 1.0
+            HS = 1.0
+          ELSE
+            H = DS/TH
+            HS = TS/TH
+          ENDIF
+          UI   = UEDG(IBL,IS)
+          UE   = (UI/QINF) * (1.0-TKLAM) /
+     &           (1.0 - TKLAM*(UI/QINF)**2)
+          AMSQ = UE*UE*HSTINV / (GAMM1*(1.0 - 0.5*UE*UE*HSTINV))
+          CALL HKIN(H, AMSQ, HK, DUMMY, DUMMY)
+C
+          s_arr(k)     = S(i)
+          x_arr(k)     = X(i)
+          y_arr(k)     = Y(i)
+          ue_arr(k)    = UE
+          dstr_arr(k)  = DS
+          thet_arr(k)  = TH
+          tstr_arr(k)  = TS
+          hk_arr(k)    = HK
+          hstr_arr(k)  = HS
+  20    CONTINUE
+      ENDIF
+C
+      END SUBROUTINE GETMOREBL
 
 C=======================================================================
       SUBROUTINE GETBLALL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
