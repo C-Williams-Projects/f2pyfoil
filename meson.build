@@ -18,6 +18,14 @@ f2py_source = custom_target('xfoilmodule',
     command: [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'xfoil', '--lower'],
 )
 
+if host_machine.system() == 'windows'
+    _fortran_args = ['-static', '-O', '-fdefault-real-8', '-finit-real=zero', '-fallow-argument-mismatch']
+    _link_args = ['-static', '-lgfortran', '-lquadmath', '-lm']
+else
+    _fortran_args = ['-O', '-fdefault-real-8', '-finit-real=zero', '-fallow-argument-mismatch']
+    _link_args = ['-lgfortran', '-lquadmath', '-lm']
+endif
+
 py.extension_module('xfoil',
     sources: [
         f2py_source,
@@ -44,8 +52,8 @@ py.extension_module('xfoil',
     ],
     include_directories: include_directories('src'),
     c_args: ['-I' + incdir_numpy, '-I' + incdir_f2py],
-    fortran_args: ['-static', '-O', '-fdefault-real-8', '-finit-real=zero', '-fallow-argument-mismatch'],
-    link_args: ['-static', '-lgfortran', '-lquadmath', '-lm'],
+    fortran_args: _fortran_args,
+    link_args: _link_args,
     install: true,
 )
 
