@@ -11,7 +11,12 @@ This repository will be exclusively for the development of the Fortran side of t
 - [x] Add Laitone and Prandtl-Glauert compressibility corrections
 - [x] Update to double precision with f2py compatibility
 - [x] Add GDES subroutines
-- [ ] Add support for other analysis routines Surface-speed (QDES), Complex Mapping (MDES)
+- [x] Add support for other analysis routines Surface-speed (QDES), Complex Mapping (MDES)
+- [ ] Testing and validate routines againsst XFoil reference data
+   - [x] OPER
+   - [x] GDES
+   - [ ] QDES
+   - [ ] MDES
 ## Beyond f2pyfoil
 - [ ] Repository 1, "pyfoil" building on top of f2pyfoil to provide a user-friendly Python interface to XFOIL's features adding in a plotting suite, some 'smart' convergence, error handling and support for batch simulations with parallel processing.
 
@@ -23,7 +28,7 @@ This repository will be exclusively for the development of the Fortran side of t
 
 
 # f2pyfoil build guide
-
+## Windows Build
 The build has been tested on a Windows 11 64-bit system with Pytohn 3.11 and gfortran 15.2.0. Static linking for some gfortran libraries is required to avoid runtime errors. The build process uses the `uv` package manager to create an isolated environment and manage dependencies. Conda has known issues for building Fortran code on Windows particularly with gfortran.
 
 ## Requirements
@@ -31,7 +36,7 @@ The build has been tested on a Windows 11 64-bit system with Pytohn 3.11 and gfo
 | Requirement | Version | Notes |
 |-------------|---------|-------|
 | Python | 3.9 or later | 3.11 recommended |
-| gfortran | 9.0 or later | Must be on system PATH |
+| gfortran | 13.0 or later | Must be on system PATH |
 | uv | latest | Package manager |
 
 ## Help with installing requirements
@@ -53,13 +58,16 @@ The build has been tested on a Windows 11 64-bit system with Pytohn 3.11 and gfo
     ```
     [activate your environment here, if not already activated]
     ```
-    uv pip install --no-buld-isolation -e .
+    uv pip install --no-build-isolation -e .
     ```
 
-2. **Quick Check**: After the installation, you can run a quick check to ensure that the package is installed correctly. This should print a long list of information abour the xfoil module, including the available functions and classes.
+2. **Quick Check**: After the installation, you can run a quick check to ensure that the package is installed correctly. This should print a long list of information about the xfoil module, including the available functions and classes.
    ```
     uv run python -c "import xfoil; print(dir(xfoil))"
    ```
+
+## Linux
+The build process on Linux is similar to Windows, but with some differences in the installation of gfortran and the use of a different package manager (e.g., apt, yum, etc.). The build process has been tested on Ubuntu 22.04 with Python 3.12 and gfortran 13.3.0.
 
 ## Full Test
 To run the full test suite, you can use the test.py file included in the repository. This will run a series of tests to verify that the wrapper is functioning correctly.

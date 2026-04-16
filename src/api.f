@@ -20,11 +20,13 @@ C***********************************************************************
 C
 C---- API subroutines for f2py Python interface
 C
-C=======================================================================
+C***********************************************************************
+C General XFoil API Routines
+C***********************************************************************
       SUBROUTINE INIT()
 C---------------------------------------
 C     Initialises all XFOIL variables.
-C     Must be called before any other API
+C     Must be at the beginning before any other
 C     subroutine.
 C---------------------------------------
       CALL INITIALISE
@@ -44,7 +46,9 @@ C
       LQUIET = setting
 C
       END SUBROUTINE Quiet
-
+C***********************************************************************
+C Airfoil and Buffer Routines
+C***********************************************************************
       SUBROUTINE SETGEOM(X_in, Y_in, N_in)
       INCLUDE 'XFOIL.INC'
       INCLUDE 'QUIET.INC'
@@ -301,145 +305,11 @@ C
 C
       END SUBROUTINE SETPARSEC
 C
-
-C=======================================================================
-      SUBROUTINE FLOWCONS(Re, Ma)
-C---------------------------------------------------
-C     Sets Reynolds and Mach numbers.
-C     Setting Re > 0 automatically enables viscous
-C     mode (LVISC = .TRUE.).
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      REAL*8 Re, Ma
-Cf2py intent(in) :: Re, Ma
-C
-      REAL*8 MINF_CLM, REINF_CLM
-C
-      REINF1 = Re
-      MINF1  = Ma
-      RETYP  = 1
-      MATYP  = 1
-      LVISC  = (Re .GT. 0.0)
-      LVCONV = .FALSE.
-C
-      CALL MRCL(1.0, MINF_CLM, REINF_CLM)
-      CALL COMSET
-C
-      END SUBROUTINE FLOWCONS
-C
-C=======================================================================
-      SUBROUTINE SETCCOR(icor)
-C---------------------------------------------------
-C     Selects compressibility correction method.
-C     icor = 0  Prandtl-Glauert
-C     icor = 1  Karman-Tsien  (default)
-C     icor = 2  Laitone
-C---------------------------------------------------
-      INCLUDE 'CPCOR.INC'
-      INTEGER icor
-Cf2py intent(in) :: icor
-      ICCOR = icor
-      CALL COMSET
-      END SUBROUTINE SETCCOR
-C
-C=======================================================================
-      SUBROUTINE MAXITER(Iter)
-C---------------------------------------------------
-C     Sets the maximum number of viscous iterations.
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER Iter
-Cf2py intent(in) :: Iter
-C
-      ITMAX = Iter
-C
-      END SUBROUTINE MAXITER
-C
-C=======================================================================
-      SUBROUTINE SETBLRLX(DHI_in, DLO_in, DNUE_in)
-C---------------------------------------------------
-C     Sets BL solver relaxation parameters.
-C     DHI_in:  high limit for normalized change (default 1.5)
-C     DLO_in:  low limit for normalized change (default -0.5)
-C     DNUE_in: Ue normalization divisor (default 0.25)
-C
-C     Tighter values (e.g. 0.8, -0.3, 0.10) reduce
-C     sensitivity to platform math library differences
-C     at the cost of more iterations.
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      REAL*8 DHI_in, DLO_in, DNUE_in
-Cf2py intent(in) :: DHI_in, DLO_in, DNUE_in
-C
-      RLXPAR_DHI  = DHI_in
-      RLXPAR_DLO  = DLO_in
-      RLXPAR_DNUE = DNUE_in
-C
-      END SUBROUTINE SETBLRLX
-C
-C=======================================================================
-      SUBROUTINE SETTRIP(Xtrip1, Xtrip2)
-C---------------------------------------------------
-C     Sets transition parameters.
-C     Xtrip1: upper surface trip x/c location
-C     Xtrip2: lower surface trip x/c location
-C     Ncrit:  log of critical amplification ratio
-C
-C     Xtrip > 1.0 means no forced transition.
-C     Negative Xtrip = -s/s_side arc length fraction.
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      REAL*8 Xtrip1, Xtrip2
-Cf2py intent(in) :: Xtrip1, Xtrip2
-C
-      XSTRIP(1) = Xtrip1
-      XSTRIP(2) = Xtrip2
-C
-      END SUBROUTINE SETTRIP
-C=======================================================================
-      SUBROUTINE SETNCRIT(Ncrit)
-C---------------------------------------------------
-C     Sets transition parameters.
-C     Xtrip1: upper surface trip x/c location
-C     Xtrip2: lower surface trip x/c location
-C     Ncrit:  log of critical amplification ratio
-C
-C     Xtrip > 1.0 means no forced transition.
-C     Negative Xtrip = -s/s_side arc length fraction.
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      REAL*8 Ncrit
-Cf2py intent(in) :: Ncrit
-C
-      ACRIT(1)  = Ncrit
-      ACRIT(2)  = Ncrit
-C
-      END SUBROUTINE SETNCRIT
-C=======================================================================
-      SUBROUTINE SETNCRIT12(Ncrit1, Ncrit2)
-C---------------------------------------------------
-C     Sets transition parameters.
-C     Xtrip1: upper surface trip x/c location
-C     Xtrip2: lower surface trip x/c location
-C     Ncrit:  log of critical amplification ratio
-C
-C     Xtrip > 1.0 means no forced transition.
-C     Negative Xtrip = -s/s_side arc length fraction.
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      REAL*8 Ncrit1, Ncrit2
-Cf2py intent(in) :: Ncrit1, Ncrit2
-C
-      ACRIT(1)  = Ncrit1
-      ACRIT(2)  = Ncrit2
-C
-      END SUBROUTINE SETNCRIT12
-
 C=======================================================================
       SUBROUTINE PANEL()
 C---------------------------------------------------
-C     Sets paneling parameters and re-panels the
-C     airfoil if geometry has been loaded.
+C     Re-panels with default parameters and 
+C     resets solution flags.
 C---------------------------------------------------
       INCLUDE 'XFOIL.INC'
 C---- re-panel only if buffer airfoil exists
@@ -495,6 +365,246 @@ C
       END SUBROUTINE REPANEL
 
 C=======================================================================
+      SUBROUTINE TOBUFFER()
+C---------------------------------------------------
+C     Copies the current airfoil geometry (X,Y) to
+C     the buffer airfoil arrays (XB,YB), re-splines,
+C     and recalculates buffer geometry parameters.
+C
+C     Useful after QDES_EXEC (which modifies the
+C     current airfoil in-place) to store the result
+C     as the buffer airfoil.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+C
+      NB = N
+      DO I = 1, N
+        XB(I) = X(I)
+        YB(I) = Y(I)
+      ENDDO
+C
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB)
+C
+      LGSAME = .TRUE.
+C
+      END SUBROUTINE TOBUFFER
+
+C=======================================================================
+      SUBROUTINE SETAIRFOIL()
+C---------------------------------------------------
+C     Copies the buffer airfoil to the current
+C     airfoil, re-splines, and resets all dependent
+C     flags. Call after any GDES buffer modifications
+C     to make them active for analysis.
+C---------------------------------------------------
+      CALL ABCOPY(.FALSE.)
+C
+      END SUBROUTINE SETAIRFOIL
+
+C***********************************************************************
+C Geometry Retrieval Routines
+C***********************************************************************
+      SUBROUTINE GETN(n_out)
+C---------------------------------------------------
+C     Returns the number of panel nodes for GET_CP.
+C     Call this first to allocate the buffer, then
+C     pass the result directly to GET_CP.
+C
+C     Output: n_out  exact number of panel nodes (= N)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_out
+Cf2py intent(out) :: n_out
+C
+      n_out = N
+C
+      END SUBROUTINE GETN
+C=======================================================================
+      SUBROUTINE GETNB(n_out)
+C---------------------------------------------------
+C     Returns the number of buffer airfoil points
+C     for GETBUFFER.  Call this first to allocate
+C     the buffers, then pass the result directly
+C     to GETBUFFER.
+C
+C     Output: n_out  exact number of buffer points (= NB)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_out
+Cf2py intent(out) :: n_out
+C
+      n_out = NB
+C
+      END SUBROUTINE GETNB
+
+C=======================================================================
+      SUBROUTINE GETNBL(n_out)
+C---------------------------------------------------
+C     Returns the total number of boundary layer
+C     data points for GET_BL.  Call this first to
+C     allocate the buffers, then pass the result
+C     directly to GET_BL.
+C
+C     The count includes airfoil panel nodes (N)
+C     and, if a wake solution exists (LWAKE), the
+C     wake nodes (NW), giving N + NW total.
+C
+C     Output: n_out  exact number of BL data points (= N + NW)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_out
+Cf2py intent(out) :: n_out
+C
+      IF(LWAKE) THEN
+        n_out = N + NW
+      ELSE
+        n_out = N
+      ENDIF
+C
+      END SUBROUTINE GETNBL
+
+C=======================================================================
+      SUBROUTINE GETBUFFER(x_arr, y_arr, n_in)
+C---------------------------------------------------
+C     Returns current buffer airfoil coordinates.
+C     Call GETBUFFER_N first to obtain n_in.
+C
+C     Input:  n_in   number of buffer points (= NB from GETBUFFER_N)
+C     Output: x_arr  x coordinates (1:n_in)
+C             y_arr  y coordinates (1:n_in)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 x_arr(n_in), y_arr(n_in)
+Cf2py intent(in)  :: n_in
+Cf2py intent(out) :: x_arr, y_arr
+C
+      INTEGER i
+C
+      DO i = 1, n_in
+        x_arr(i) = XB(i)
+        y_arr(i) = YB(i)
+      ENDDO
+C
+      END SUBROUTINE GETBUFFER
+
+C=======================================================================
+      SUBROUTINE GETGEOM(x_arr, y_arr, n_in)
+C---------------------------------------------------
+C     Returns current airfoil panel coordinates.
+C     Call GETN first to obtain n_in.
+C
+C     Input:  n_in   number of panel nodes (= N from GETN)
+C     Output: x_arr  x coordinates (1:n_in)
+C             y_arr  y coordinates (1:n_in)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 x_arr(n_in), y_arr(n_in)
+Cf2py intent(in)  :: n_in
+Cf2py intent(out) :: x_arr, y_arr
+C
+      INTEGER i
+C
+      DO i = 1, n_in
+        x_arr(i) = X(i)
+        y_arr(i) = Y(i)
+      ENDDO
+C
+      END SUBROUTINE GETGEOM
+
+C***********************************************************************
+C Oper Settings
+C***********************************************************************
+      SUBROUTINE SETFLOW(Re, Ma)
+C---------------------------------------------------
+C     Sets Reynolds and Mach numbers.
+C     Setting Re > 0 automatically enables viscous
+C     mode (LVISC = .TRUE.).
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 Re, Ma
+Cf2py intent(in) :: Re, Ma
+C
+      REAL*8 MINF_CLM, REINF_CLM
+C
+      REINF1 = Re
+      MINF1  = Ma
+      RETYP  = 1
+      MATYP  = 1
+      LVISC  = (Re .GT. 0.0)
+      LVCONV = .FALSE.
+C
+      CALL MRCL(1.0, MINF_CLM, REINF_CLM)
+      CALL COMSET
+C
+      END SUBROUTINE SETFLOW
+
+C=======================================================================
+      SUBROUTINE SETTRIP(Xtrip1, Xtrip2)
+C---------------------------------------------------
+C     Sets transition parameters.
+C     Xtrip1: upper surface trip x/c location
+C     Xtrip2: lower surface trip x/c location
+C     Ncrit:  log of critical amplification ratio
+C
+C     Xtrip > 1.0 means no forced transition.
+C     Negative Xtrip = -s/s_side arc length fraction.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 Xtrip1, Xtrip2
+Cf2py intent(in) :: Xtrip1, Xtrip2
+C
+      XSTRIP(1) = Xtrip1
+      XSTRIP(2) = Xtrip2
+C
+      END SUBROUTINE SETTRIP
+
+C=======================================================================
+      SUBROUTINE SETNCRIT(Ncrit1, Ncrit2)
+C---------------------------------------------------
+C     Sets transition parameters.
+C     Xtrip1: upper surface trip x/c location
+C     Xtrip2: lower surface trip x/c location
+C     Ncrit:  log of critical amplification ratio
+C
+C     Xtrip > 1.0 means no forced transition.
+C     Negative Xtrip = -s/s_side arc length fraction.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 Ncrit1, Ncrit2
+Cf2py intent(in) :: Ncrit1, Ncrit2
+C
+      ACRIT(1)  = Ncrit1
+      ACRIT(2)  = Ncrit2
+C
+      END SUBROUTINE SETNCRIT
+C
+C=======================================================================
+      SUBROUTINE SETCCOR(icor)
+C---------------------------------------------------
+C     Selects compressibility correction method.
+C     icor = 0  Prandtl-Glauert
+C     icor = 1  Karman-Tsien  (default)
+C     icor = 2  Laitone
+C---------------------------------------------------
+      INCLUDE 'CPCOR.INC'
+      INTEGER icor
+Cf2py intent(in) :: icor
+      ICCOR = icor
+      CALL COMSET
+      END SUBROUTINE SETCCOR
+C
+
+C=======================================================================
       SUBROUTINE RESETBL()
 C---------------------------------------------------
 C     Resets boundary layer initialisation flags.
@@ -508,8 +618,47 @@ C
 C
       END SUBROUTINE RESETBL
 
+C***********************************************************************
+C Solver Controls
+C***********************************************************************
+      SUBROUTINE SETBLRLX(DHI_in, DLO_in, DNUE_in)
+C---------------------------------------------------
+C     Sets BL solver relaxation parameters.
+C     DHI_in:  high limit for normalized change (default 1.5)
+C     DLO_in:  low limit for normalized change (default -0.5)
+C     DNUE_in: Ue normalization divisor (default 0.25)
+C
+C     Tighter values (e.g. 0.8, -0.3, 0.10) reduce
+C     sensitivity to platform math library differences
+C     at the cost of more iterations.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 DHI_in, DLO_in, DNUE_in
+Cf2py intent(in) :: DHI_in, DLO_in, DNUE_in
+C
+      RLXPAR_DHI  = DHI_in
+      RLXPAR_DLO  = DLO_in
+      RLXPAR_DNUE = DNUE_in
+C
+      END SUBROUTINE SETBLRLX
+C
 C=======================================================================
-      SUBROUTINE ALPHA(alpha_deg,
+      SUBROUTINE MAXITER(Iter)
+C---------------------------------------------------
+C     Sets the maximum number of viscous iterations.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER Iter
+Cf2py intent(in) :: Iter
+C
+      ITMAX = Iter
+C
+      END SUBROUTINE MAXITER
+C
+C***********************************************************************
+C Oper Analysis Routines
+C***********************************************************************
+      SUBROUTINE RUNALPHA(alpha_deg,
      &                 cl_out, cd_out, cm_out,
      &                 xtu_out, xtb_out, conv_out)
 C---------------------------------------------------
@@ -555,10 +704,10 @@ C
       xtu_out = XOCTR(1)
       xtb_out = XOCTR(2)
 C
-      END SUBROUTINE ALPHA
+      END SUBROUTINE RUNALPHA
 
 C=======================================================================
-      SUBROUTINE ASEQ(alpha_i, alpha_f, n_alpha,
+      SUBROUTINE RUNASEQ(alpha_i, alpha_f, n_alpha,
      &                a_arr, cl_arr, cd_arr, cm_arr,
      &                xtu_arr, xtb_arr, conv_arr)
 C---------------------------------------------------
@@ -623,10 +772,10 @@ C
         xtb_arr(i) = XOCTR(2)
       ENDDO
 C
-      END SUBROUTINE ASEQ
+      END SUBROUTINE RUNASEQ
 
 C=======================================================================
-      SUBROUTINE SCL(cl_val,
+      SUBROUTINE RUNCL(cl_val,
      &                   a_out, cl_out, cd_out, cm_out, 
      &                   xtu_out, xtb_out, conv_out)
 C---------------------------------------------------
@@ -679,10 +828,10 @@ C
       xtu_out = XOCTR(1)
       xtb_out = XOCTR(2)
 C
-      END SUBROUTINE SCL
+      END SUBROUTINE RUNCL
 
 C=======================================================================
-      SUBROUTINE CSEQ(cl_start, cl_end, n_step,
+      SUBROUTINE RUNCSEQ(cl_start, cl_end, n_step,
      &                a_arr, cl_arr, cd_arr, cm_arr, xtu_arr, xtb_arr,
      &                conv_arr)
 C---------------------------------------------------
@@ -751,120 +900,11 @@ C
 C
       ENDDO
 C
-      END SUBROUTINE CSEQ
+      END SUBROUTINE RUNCSEQ
+C***********************************************************************
+C OPER Data Retrieval Routines
+C***********************************************************************
 
-C=======================================================================
-      SUBROUTINE GETNB(n_out)
-C---------------------------------------------------
-C     Returns the number of buffer airfoil points
-C     for GETBUFFER.  Call this first to allocate
-C     the buffers, then pass the result directly
-C     to GETBUFFER.
-C
-C     Output: n_out  exact number of buffer points (= NB)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER n_out
-Cf2py intent(out) :: n_out
-C
-      n_out = NB
-C
-      END SUBROUTINE GETNB
-
-C=======================================================================
-      SUBROUTINE GETBUFFER(x_arr, y_arr, n_in)
-C---------------------------------------------------
-C     Returns current buffer airfoil coordinates.
-C     Call GETBUFFER_N first to obtain n_in.
-C
-C     Input:  n_in   number of buffer points (= NB from GETBUFFER_N)
-C     Output: x_arr  x coordinates (1:n_in)
-C             y_arr  y coordinates (1:n_in)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER n_in
-      REAL*8 x_arr(n_in), y_arr(n_in)
-Cf2py intent(in)  :: n_in
-Cf2py intent(out) :: x_arr, y_arr
-C
-      INTEGER i
-C
-      DO i = 1, n_in
-        x_arr(i) = XB(i)
-        y_arr(i) = YB(i)
-      ENDDO
-C
-      END SUBROUTINE GETBUFFER
-
-C=======================================================================
-      SUBROUTINE GETNBL(n_out)
-C---------------------------------------------------
-C     Returns the total number of boundary layer
-C     data points for GET_BL.  Call this first to
-C     allocate the buffers, then pass the result
-C     directly to GET_BL.
-C
-C     The count includes airfoil panel nodes (N)
-C     and, if a wake solution exists (LWAKE), the
-C     wake nodes (NW), giving N + NW total.
-C
-C     Output: n_out  exact number of BL data points (= N + NW)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER n_out
-Cf2py intent(out) :: n_out
-C
-      IF(LWAKE) THEN
-        n_out = N + NW
-      ELSE
-        n_out = N
-      ENDIF
-C
-      END SUBROUTINE GETNBL
-
-C=======================================================================
-      SUBROUTINE GETN(n_out)
-C---------------------------------------------------
-C     Returns the number of panel nodes for GET_CP.
-C     Call this first to allocate the buffer, then
-C     pass the result directly to GET_CP.
-C
-C     Output: n_out  exact number of panel nodes (= N)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER n_out
-Cf2py intent(out) :: n_out
-C
-      n_out = N
-C
-      END SUBROUTINE GETN
-
-C=======================================================================
-      SUBROUTINE GETGEOM(x_arr, y_arr, n_in)
-C---------------------------------------------------
-C     Returns current airfoil panel coordinates.
-C     Call GETN first to obtain n_in.
-C
-C     Input:  n_in   number of panel nodes (= N from GETN)
-C     Output: x_arr  x coordinates (1:n_in)
-C             y_arr  y coordinates (1:n_in)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER n_in
-      REAL*8 x_arr(n_in), y_arr(n_in)
-Cf2py intent(in)  :: n_in
-Cf2py intent(out) :: x_arr, y_arr
-C
-      INTEGER i
-C
-      DO i = 1, n_in
-        x_arr(i) = X(i)
-        y_arr(i) = Y(i)
-      ENDDO
-C
-      END SUBROUTINE GETGEOM
-
-C=======================================================================
       SUBROUTINE GETCP(cp_arr, n_in)
 C---------------------------------------------------
 C     Returns pressure coefficient distribution.
@@ -1164,7 +1204,7 @@ C
       END SUBROUTINE GETMOREBL
 
 C=======================================================================
-      SUBROUTINE GETBLALL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
+      SUBROUTINE GETALLBL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
      &                  thet_arr, hk_arr, cdis_arr, ct_arr,
      &                   P_arr, m_arr, K_arr,
      &                  n_in)
@@ -1302,13 +1342,11 @@ C
   20    CONTINUE
       ENDIF
 C
-      END SUBROUTINE GETBLALL
+      END SUBROUTINE GETALLBL
 
-C=======================================================================
-C---- GDES menu wrappers
-C=======================================================================
-
-C=======================================================================
+C***********************************************************************
+C Geometry Design Routines
+C***********************************************************************
       SUBROUTINE SETFLAP(Xcloc, Ycloc, DegDef)
 C---------------------------------------------------
 C     Adds a flap to the current airfoil geometry.
@@ -1320,112 +1358,6 @@ Cf2py intent(in) :: Xcloc, Ycloc, DegDef
 
       CALL FLAP(Xcloc, Ycloc, DegDef)
       END SUBROUTINE SETFLAP
-      
-C=======================================================================
-      SUBROUTINE GETGEOINFO(chord_out, area_out, radle_out,
-     &                      angbte_out, thick_out, cambr_out)
-C---------------------------------------------------
-C     Returns the full set of geometric parameters
-C     for the buffer airfoil.
-C     Synchronises buffer and current airfoil via
-C     ABCOPY before querying.
-C
-C     Output: chord_out   chord length
-C             area_out    enclosed area
-C             radle_out   leading-edge radius
-C             angbte_out  trailing-edge included angle (rad)
-C             thick_out   maximum thickness
-C             cambr_out   maximum camber
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      REAL*8 chord_out, area_out, radle_out
-      REAL*8 angbte_out, thick_out, cambr_out
-Cf2py intent(out) :: chord_out, area_out, radle_out
-Cf2py intent(out) :: angbte_out, thick_out, cambr_out
-C
-C---- synchronise current airfoil from buffer
-      CALL ABCOPY(.FALSE.)
-C
-C---- recompute geometry parameters on the buffer airfoil
-      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
-     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
-     &            EI11BA,EI22BA,APX1BA,APX2BA,
-     &            EI11BT,EI22BT,APX1BT,APX2BT,
-     &            THICKB,CAMBRB )
-C
-      chord_out  = CHORDB
-      area_out   = AREAB
-      radle_out  = RADBLE
-      angbte_out = ANGBTE
-      thick_out  = THICKB
-      cambr_out  = CAMBRB
-C
-      END SUBROUTINE GETGEOINFO
-
-C=======================================================================
-      SUBROUTINE GETPANANGLE(imax_out, amax_out)
-C---------------------------------------------------
-C     Returns the index and magnitude of the maximum
-C     panel corner angle across the buffer airfoil.
-C     Terminal output is suppressed (IPRINT=0).
-C
-C     Output: imax_out  index of max corner angle point
-C             amax_out  max corner angle (degrees)
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      INTEGER imax_out
-      REAL*8 amax_out
-Cf2py intent(out) :: imax_out, amax_out
-C
-      CALL CANG(XB,YB,NB, 0, imax_out, amax_out)
-C
-      END SUBROUTINE GETPANANGLE
-
-C=======================================================================
-      SUBROUTINE GETSTRUCT(area_out, slen_out,
-     &                     xc_out, yc_out,
-     &                     aixx_out, aixxt_out,
-     &                     aiyy_out, aiyyt_out,
-     &                     aj_out, ajt_out)
-C---------------------------------------------------
-C     Returns structural cross-section integrals
-C     for the buffer airfoil (GDES BEND command).
-C     Uses power exponent PEX = 16.0 internally.
-C
-C     Output: area_out   enclosed area
-C             slen_out   perimeter length
-C             xc_out     centroid x coordinate
-C             yc_out     centroid y coordinate
-C             aixx_out   solid Ixx (second moment about x)
-C             aixxt_out  skin-weighted Ixx
-C             aiyy_out   solid Iyy (second moment about y)
-C             aiyyt_out  skin-weighted Iyy
-C             aj_out     solid torsional constant
-C             ajt_out    skin torsional constant
-C---------------------------------------------------
-      INCLUDE 'XFOIL.INC'
-      REAL*8 area_out, slen_out, xc_out, yc_out
-      REAL*8 aixx_out, aixxt_out, aiyy_out, aiyyt_out
-      REAL*8 aj_out, ajt_out
-Cf2py intent(out) :: area_out, slen_out, xc_out, yc_out
-Cf2py intent(out) :: aixx_out, aixxt_out, aiyy_out, aiyyt_out
-Cf2py intent(out) :: aj_out, ajt_out
-C
-      REAL*8 PEX
-      REAL*8 XMIN, XMAX, XEXINT
-      REAL*8 YMIN, YMAX, YEXINT
-C
-      PEX = 16.0
-C
-      CALL IJSECT(NB, XB, YB, PEX,
-     &  area_out, slen_out,
-     &  xc_out, XMIN, XMAX, XEXINT,
-     &  yc_out, YMIN, YMAX, YEXINT,
-     &  aixx_out, aixxt_out,
-     &  aiyy_out, aiyyt_out,
-     &  aj_out, ajt_out)
-C
-      END SUBROUTINE GETSTRUCT
 
 C=======================================================================
       SUBROUTINE ANGREFINE(atol_in, x1_in, x2_in)
@@ -1545,10 +1477,6 @@ C
       LGSAME = .FALSE.
 C
       END SUBROUTINE INTERP
-
-C=======================================================================
-C---- GDES Phase 2 wrappers
-C=======================================================================
 
 C=======================================================================
       SUBROUTINE ROTATEGEOM(angle_in, in_degrees)
@@ -1691,16 +1619,908 @@ Cf2py intent(in) :: thpnt_in, chpnt_in
 C
       CALL HIPNT(thpnt_in, chpnt_in)
 C
-      END SUBROUTINE MOVHIPNT
+      END SUBROUTINE MOVHIPNT      
+C***********************************************************************
+C Geometry Information Retrieval Routines
+C***********************************************************************
 
-C=======================================================================
-      SUBROUTINE SETAIRFOIL()
+      SUBROUTINE GEOMINFO(chord_out, area_out, radle_out,
+     &                      angbte_out, thick_out, cambr_out)
 C---------------------------------------------------
-C     Copies the buffer airfoil to the current
-C     airfoil, re-splines, and resets all dependent
-C     flags. Call after any GDES buffer modifications
-C     to make them active for analysis.
+C     Returns the full set of geometric parameters
+C     for the buffer airfoil.
+C     Synchronises buffer and current airfoil via
+C     ABCOPY before querying.
+C
+C     Output: chord_out   chord length
+C             area_out    enclosed area
+C             radle_out   leading-edge radius
+C             angbte_out  trailing-edge included angle (rad)
+C             thick_out   maximum thickness
+C             cambr_out   maximum camber
 C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 chord_out, area_out, radle_out
+      REAL*8 angbte_out, thick_out, cambr_out
+Cf2py intent(out) :: chord_out, area_out, radle_out
+Cf2py intent(out) :: angbte_out, thick_out, cambr_out
+C
+C---- synchronise current airfoil from buffer
       CALL ABCOPY(.FALSE.)
 C
-      END SUBROUTINE SETAIRFOIL
+C---- recompute geometry parameters on the buffer airfoil
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB )
+C
+      chord_out  = CHORDB
+      area_out   = AREAB
+      radle_out  = RADBLE
+      angbte_out = ANGBTE
+      thick_out  = THICKB
+      cambr_out  = CAMBRB
+C
+      END SUBROUTINE GEOMINFO
+
+C=======================================================================
+      SUBROUTINE PANELANGLE(imax_out, amax_out)
+C---------------------------------------------------
+C     Returns the index and magnitude of the maximum
+C     panel corner angle across the buffer airfoil.
+C     Terminal output is suppressed (IPRINT=0).
+C
+C     Output: imax_out  index of max corner angle point
+C             amax_out  max corner angle (degrees)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER imax_out
+      REAL*8 amax_out
+Cf2py intent(out) :: imax_out, amax_out
+C
+      CALL CANG(XB,YB,NB, 0, imax_out, amax_out)
+C
+      END SUBROUTINE PANELANGLE
+
+C=======================================================================
+      SUBROUTINE GETSTRUCT(area_out, slen_out,
+     &                     xc_out, yc_out,
+     &                     aixx_out, aixxt_out,
+     &                     aiyy_out, aiyyt_out,
+     &                     aj_out, ajt_out)
+C---------------------------------------------------
+C     Returns structural cross-section integrals
+C     for the buffer airfoil (GDES BEND command).
+C     Uses power exponent PEX = 16.0 internally.
+C
+C     Output: area_out   enclosed area
+C             slen_out   perimeter length
+C             xc_out     centroid x coordinate
+C             yc_out     centroid y coordinate
+C             aixx_out   solid Ixx (second moment about x)
+C             aixxt_out  skin-weighted Ixx
+C             aiyy_out   solid Iyy (second moment about y)
+C             aiyyt_out  skin-weighted Iyy
+C             aj_out     solid torsional constant
+C             ajt_out    skin torsional constant
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      REAL*8 area_out, slen_out, xc_out, yc_out
+      REAL*8 aixx_out, aixxt_out, aiyy_out, aiyyt_out
+      REAL*8 aj_out, ajt_out
+Cf2py intent(out) :: area_out, slen_out, xc_out, yc_out
+Cf2py intent(out) :: aixx_out, aixxt_out, aiyy_out, aiyyt_out
+Cf2py intent(out) :: aj_out, ajt_out
+C
+      REAL*8 PEX
+      REAL*8 XMIN, XMAX, XEXINT
+      REAL*8 YMIN, YMAX, YEXINT
+C
+      PEX = 16.0
+C
+      CALL IJSECT(NB, XB, YB, PEX,
+     &  area_out, slen_out,
+     &  xc_out, XMIN, XMAX, XEXINT,
+     &  yc_out, YMIN, YMAX, YEXINT,
+     &  aixx_out, aixxt_out,
+     &  aiyy_out, aiyyt_out,
+     &  aj_out, ajt_out)
+C
+      END SUBROUTINE GETSTRUCT
+
+C***********************************************************************
+C QDES and MDES Design Information Retrieval Routines
+C***********************************************************************
+
+      SUBROUTINE GETNSP(nsp_out)
+C---------------------------------------------------
+C     Returns NSP, the number of points in the
+C     QSPEC/SSPEC/QGAMM arrays. In QDES mode this
+C     equals N (panel count). In MDES mode this
+C     equals NC1 (circle-plane points).
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER nsp_out
+Cf2py intent(out) :: nsp_out
+C
+      nsp_out = NSP
+C
+      END SUBROUTINE GETNSP
+
+C=======================================================================
+      SUBROUTINE QDESINFO(iq1_out, iq2_out, nsp_out, nqsp_out,
+     &                       algam_out, clgam_out, cmgam_out)
+C---------------------------------------------------
+C     Returns key scalar state for inverse design.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER iq1_out, iq2_out, nsp_out, nqsp_out
+      REAL*8 algam_out, clgam_out, cmgam_out
+Cf2py intent(out) :: iq1_out, iq2_out, nsp_out, nqsp_out
+Cf2py intent(out) :: algam_out, clgam_out, cmgam_out
+C
+      iq1_out = IQ1
+      iq2_out = IQ2
+      nsp_out = NSP
+      nqsp_out = NQSP
+      algam_out = ALGAM / DTOR
+      clgam_out = CLGAM
+      cmgam_out = CMGAM
+C
+      END SUBROUTINE QDESINFO
+
+C=======================================================================
+      SUBROUTINE GETQSPEC(qsp_out, ssp_out, n_in, kqsp_in)
+C---------------------------------------------------
+C     Returns the QSPEC and SSPEC arrays for a given
+C     Qspec index.
+C
+C     Input:  n_in     array size (use GETNSP)
+C             kqsp_in  Qspec index (1..NQSP)
+C     Output: qsp_out  surface speed distribution
+C             ssp_out  normalized arc length
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in, kqsp_in
+      REAL*8 qsp_out(n_in), ssp_out(n_in)
+Cf2py intent(in) :: n_in, kqsp_in
+Cf2py intent(out) :: qsp_out, ssp_out
+C
+      INTEGER KQSP
+      KQSP = MAX(1, MIN(kqsp_in, MAX(NQSP,1)))
+C
+      DO I = 1, MIN(n_in, NSP)
+        qsp_out(I) = QSPEC(I,KQSP)
+        ssp_out(I) = SSPEC(I)
+      ENDDO
+C
+      END SUBROUTINE GETQSPEC
+
+C=======================================================================
+      SUBROUTINE GETQGAMM(qgm_out, ssp_out, n_in)
+C---------------------------------------------------
+C     Returns the QGAMM (current surface speed Q)
+C     and SSPEC (normalized arc length) arrays.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 qgm_out(n_in), ssp_out(n_in)
+Cf2py intent(in) :: n_in
+Cf2py intent(out) :: qgm_out, ssp_out
+C
+      DO I = 1, MIN(n_in, NSP)
+        qgm_out(I) = QGAMM(I)
+        ssp_out(I) = SSPEC(I)
+      ENDDO
+C
+      END SUBROUTINE GETQGAMM
+
+C=======================================================================
+      SUBROUTINE GETXSPOC(xsp_out, ysp_out, n_in)
+C---------------------------------------------------
+C     Returns the XSPOC and YSPOC arrays (x/c, y/c
+C     coordinates at Qspec surface points).
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 xsp_out(n_in), ysp_out(n_in)
+Cf2py intent(in) :: n_in
+Cf2py intent(out) :: xsp_out, ysp_out
+C
+      DO I = 1, MIN(n_in, NSP)
+        xsp_out(I) = XSPOC(I)
+        ysp_out(I) = YSPOC(I)
+      ENDDO
+C
+      END SUBROUTINE GETXSPOC
+
+C***********************************************************************
+C     QDES (Mixed-Inverse) Setup Routines
+C***********************************************************************
+
+C=======================================================================
+      SUBROUTINE STARTQDES()
+C---------------------------------------------------
+C     Initializes the QDES (mixed-inverse) mode.
+C     Requires a paneled airfoil with a valid
+C     inviscid solution (call ALPHA or SCL first).
+C     Sets up QGAMM, SSPEC, XSPOC, YSPOC arrays
+C     and initializes QSPEC(1) from current Q.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
+C
+C---- ensure current solution exists
+      CALL SPECAL
+C
+C---- see if current Qspec didn't come from Full-Inverse
+      IF(NSP.NE.N) THEN
+        LQSPEC = .FALSE.
+        LIQSET = .FALSE.
+      ENDIF
+C
+C---- set alpha, CL, CM corresponding to current Q
+      ALGAM = ALFA
+      CLGAM = CL
+      CMGAM = CM
+C
+C---- set "old" speed distribution, arc length, and x/c,y/c arrays
+      CHX = XTE - XLE
+      CHY = YTE - YLE
+      CHSQ = CHX**2 + CHY**2
+      NSP = N
+      DO I = 1, NSP
+        QGAMM(I) = GAM(I)
+        SSPEC(I) = S(I) / S(N)
+        XSPOC(I) = ((X(I)-XLE)*CHX + (Y(I)-YLE)*CHY) / CHSQ
+        YSPOC(I) = ((Y(I)-YLE)*CHX - (X(I)-XLE)*CHY) / CHSQ
+      ENDDO
+      SSPLE = SLE / S(N)
+C
+C---- initialize Qspec to current Q if not already set
+      IF(.NOT.LQSPEC) THEN
+        NQSP = 1
+        KQTARG = 1
+        CALL GAMQSP(1)
+        LQSPEC = .TRUE.
+      ENDIF
+C
+C---- default flags
+      LQSLOP = .TRUE.
+      LCPXX  = .FALSE.
+C
+      END SUBROUTINE STARTQDES
+
+C=======================================================================
+      SUBROUTINE SEGMENT(iq1_in, iq2_in)
+C---------------------------------------------------
+C     Sets the target segment endpoint indices for
+C     mixed-inverse design. Replaces the interactive
+C     cursor-based MARK/IQSGET command.
+C
+C     Input: iq1_in  start index (1-based, 1..NSP)
+C            iq2_in  end index   (1-based, 1..NSP)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER iq1_in, iq2_in
+Cf2py intent(in) :: iq1_in, iq2_in
+C
+      IQ1 = MAX(1,   MIN(iq1_in, NSP))
+      IQ2 = MAX(IQ1, MIN(iq2_in, NSP))
+      LIQSET = .TRUE.
+C
+      END SUBROUTINE SEGMENT
+
+C=======================================================================
+      SUBROUTINE SETQSPEC(qsp_in, n_in, kqsp_in)
+C---------------------------------------------------
+C     Sets the QSPEC array for a given Qspec index.
+C     Replaces the interactive MODI command.
+C
+C     Input: qsp_in   new Qspec values (length NSP)
+C            n_in     length of array (hidden by f2py)
+C            kqsp_in  Qspec index (1..NQSP, usually 1)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in, kqsp_in
+      REAL*8 qsp_in(n_in)
+Cf2py intent(in) :: qsp_in, kqsp_in
+Cf2py integer intent(hide),depend(qsp_in) :: n_in = len(qsp_in)
+C
+      INTEGER KQSP
+      KQSP = MAX(1, MIN(kqsp_in, MAX(NQSP,1)))
+C
+      DO I = 1, MIN(n_in, NSP)
+        QSPEC(I,KQSP) = qsp_in(I)
+      ENDDO
+C
+C---- zero DOFs
+      QDOF0 = 0.0
+      QDOF1 = 0.0
+      QDOF2 = 0.0
+      QDOF3 = 0.0
+C
+      CALL SPLQSP(KQSP)
+C
+      END SUBROUTINE SETQSPEC
+
+C=======================================================================
+      SUBROUTINE RESETQSPEC(kqsp_in)
+C---------------------------------------------------
+C     Resets QSPEC(kqsp) to the current surface speed
+C     distribution (QGAMM).
+C     Corresponds to QDES command QSET.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER kqsp_in
+Cf2py intent(in) :: kqsp_in
+C
+      CALL GAMQSP(MAX(1, MIN(kqsp_in, MAX(NQSP,1))))
+C
+      END SUBROUTINE RESETQSPEC
+
+C=======================================================================
+      SUBROUTINE QDES_SMOOTH(kqsp_in)
+C---------------------------------------------------
+C     Smooths QSPEC in the target segment [IQ1,IQ2].
+C     Corresponds to QDES command SMOO.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER kqsp_in
+Cf2py intent(in) :: kqsp_in
+C
+      INTEGER KQSP
+      KQSP = MAX(1, MIN(kqsp_in, MAX(NQSP,1)))
+      CALL SMOOQ(IQ1, IQ2, KQSP)
+      CALL SPLQSP(KQSP)
+C
+      END SUBROUTINE QDES_SMOOTH
+
+C=======================================================================
+      SUBROUTINE QDESFLAGS(lqslop_in, lcpxx_in)
+C---------------------------------------------------
+C     Sets slope-matching and Cpxx constraint flags.
+C     Corresponds to QDES commands SLOP and CPXX.
+C
+C     lqslop_in: if True, modified Qspec piece will
+C                be made tangent at endpoints
+C     lcpxx_in:  if True, CPxx endpoint constraints
+C                will be enforced
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      LOGICAL lqslop_in, lcpxx_in
+Cf2py intent(in) :: lqslop_in, lcpxx_in
+C
+      LQSLOP = lqslop_in
+      LCPXX  = lcpxx_in
+C
+      END SUBROUTINE QDESFLAGS
+
+C=======================================================================
+      SUBROUTINE RUNQDES(kqsp_in, niterq_in)
+C---------------------------------------------------
+C     Executes the mixed-inverse design calculation.
+C     Modifies the current airfoil geometry in the
+C     target segment [IQ1,IQ2] to match QSPEC.
+C
+C     Before execution, the current airfoil is saved
+C     to the buffer for possible restoration via
+C     QDES_RESTORE.
+C
+C     After execution, the modified geometry is in
+C     X,Y arrays. Use GETGEOM to retrieve it.
+C
+C     Corresponds to QDES command EXEC.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'QUIET.INC'
+      INTEGER kqsp_in, niterq_in
+Cf2py intent(in) :: kqsp_in, niterq_in
+C
+      INTEGER KQSP, IST
+C
+C---- validate target segment is marked
+      IF(.NOT.LIQSET) THEN
+        IF(.NOT.LQUIET)
+     &   WRITE(*,*) 'QDES_EXEC: Must mark target segment first'
+        RETURN
+      ENDIF
+C
+      KQSP = MAX(1, MIN(kqsp_in, MAX(NQSP,1)))
+C
+C---- check if target segment includes stagnation point
+      IST = 0
+      DO I = IQ1, IQ2-1
+        IF(QGAMM(I).GE.0.0 .AND. QGAMM(I+1).LT.0.0) IST = I
+      ENDDO
+C
+      IF(IST.NE.0) THEN
+        IF(.NOT.LQUIET) THEN
+          WRITE(*,*)
+          WRITE(*,*) 'Target segment cannot include ',
+     &               'stagnation point in mixed-inverse.'
+        ENDIF
+        RETURN
+      ENDIF
+C
+      CLSPEC = CLQSP(KQSP)
+C
+C---- save current coordinates to buffer for restoration
+      DO I = 1, N
+        XB(I)  = X(I)
+        YB(I)  = Y(I)
+        SB(I)  = S(I)
+        XBP(I) = XP(I)
+        YBP(I) = YP(I)
+      ENDDO
+      NB = N
+      LGSAME = .TRUE.
+C
+C---- execute mixed-inverse calculation
+      CALL MIXED(KQSP, niterq_in)
+      ADEG = ALFA / DTOR
+C
+C---- re-spline new airfoil shape
+      CALL SCALC(X,Y,S,N)
+      CALL SPLIND(X,XP,S,N,-999.0,-999.0)
+      CALL SPLIND(Y,YP,S,N,-999.0,-999.0)
+      CALL NCALC(X,Y,S,N,NX,NY)
+      CALL LEFIND(SLE,X,XP,Y,YP,S,N)
+      XLE = SEVAL(SLE,X,XP,S,N)
+      YLE = SEVAL(SLE,Y,YP,S,N)
+      CHORD = SQRT( (0.5*(X(1)+X(N)) - XLE)**2
+     &            + (0.5*(Y(1)+Y(N)) - YLE)**2 )
+      CALL TECALC
+      CALL APCALC
+C
+C---- update reference speed distribution
+      ALGAM = ALFA
+      NSP = N
+      DO I = 1, N
+        QGAMM(I) = GAM(I)
+        SSPEC(I) = S(I) / S(N)
+      ENDDO
+      SSPLE = SLE / S(N)
+C
+C---- set inviscid surface speeds and compressible Cp
+      DO I = 1, N
+        QINV(I) = GAM(I)
+      ENDDO
+      CALL CPCALC(N,QINV,QINF,MINF,CPI)
+C
+C---- invalidate dependent solutions
+      LGAMU  = .FALSE.
+      LQINU  = .FALSE.
+      LWAKE  = .FALSE.
+      LQAIJ  = .FALSE.
+      LADIJ  = .FALSE.
+      LWDIJ  = .FALSE.
+      LIPAN  = .FALSE.
+      LVCONV = .FALSE.
+      LSCINI = .FALSE.
+      LGSAME = .FALSE.
+C
+      END SUBROUTINE RUNQDES
+
+
+C=======================================================================
+C     MDES (FULL-INVERSE) DESIGN SUBROUTINES
+C=======================================================================
+
+C=======================================================================
+      SUBROUTINE STARTMDES()
+C---------------------------------------------------
+C     Initializes the MDES (full-inverse) mode.
+C     Sets up circle-plane mapping from the current
+C     airfoil. Requires a paneled airfoil with a
+C     valid inviscid solution (call ALPHA or SCL
+C     first).
+C
+C     Performs: EIWSET, SCINIT, MAPGAM, CNCALC,
+C     QSPCIR initialization chain.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'CIRCLE.INC'
+      INCLUDE 'QUIET.INC'
+C
+C---- initialize Fourier transform arrays if not yet done
+      IF(.NOT.LEIW) THEN
+        CALL EIWSET(NC1)
+        LEIW = .TRUE.
+      ENDIF
+C
+C---- if Qspec alpha has never been set, set it to current alpha
+      IF(NQSP.EQ.0) THEN
+        IACQSP = 1
+        ALQSP(1) = ALFA
+        NQSP = 1
+      ENDIF
+C
+C---- initialize s(w) for current airfoil if not yet done
+      IF(.NOT.LSCINI) THEN
+        CALL SCINIT(N,X,XP,Y,YP,S,SLE)
+        LSCINI = .TRUE.
+        LQSPEC = .FALSE.
+      ENDIF
+C
+C---- set initial Q for current alpha
+      ALGAM = ALFA
+      CALL MAPGAM(1, ALGAM, CLGAM, CMGAM)
+C
+C---- initialize Qspec from current Q if not already set
+      IF(.NOT.LQSPEC) THEN
+        CALL CNCALC(QGAMM,.FALSE.)
+        CALL QSPCIR
+      ENDIF
+C
+C---- default target segment = whole airfoil
+      IQ1 = 1
+      IQ2 = NSP
+C
+C---- default flags
+      LQSLOP = .TRUE.
+      LQSYM  = .FALSE.
+C
+      END SUBROUTINE STARTMDES
+
+C=======================================================================
+      SUBROUTINE SETNQSP(nqsp_in)
+C---------------------------------------------------
+C     Sets the number of Qspec distributions (1..IPX).
+C     New entries are initialized from QSPEC(1).
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER nqsp_in
+Cf2py intent(in) :: nqsp_in
+C
+      INTEGER NOLD
+      NOLD = NQSP
+      NQSP = MAX(1, MIN(nqsp_in, IPX))
+C
+C---- initialize any new entries from QSPEC(1)
+      DO K = NOLD+1, NQSP
+        ALQSP(K) = ALQSP(1)
+        CLQSP(K) = CLQSP(1)
+        CMQSP(K) = CMQSP(1)
+        DO I = 1, NSP
+          QSPEC(I,K) = QSPEC(I,1)
+        ENDDO
+      ENDDO
+C
+      END SUBROUTINE SETNQSP
+
+C=======================================================================
+      SUBROUTINE SETALPHA(alpha_arr, n_in)
+C---------------------------------------------------
+C     Sets design angle(s) of attack (degrees) for
+C     Qspec distributions and recomputes QSPEC via
+C     circle-plane mapping.
+C     Corresponds to MDES command AQ.
+C
+C     The array length determines how many ALQSP
+C     entries are set (up to NQSP).
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 alpha_arr(n_in)
+Cf2py intent(in) :: alpha_arr
+Cf2py integer intent(hide),depend(alpha_arr) :: n_in = len(alpha_arr)
+C
+      NQSP = MAX(1, MIN(n_in, IPX))
+      IACQSP = 1
+      DO K = 1, NQSP
+        ALQSP(K) = alpha_arr(K) * DTOR
+      ENDDO
+      CALL QSPCIR
+C
+      END SUBROUTINE SETALPHA
+
+C=======================================================================
+      SUBROUTINE SETCL(cl_arr, n_in)
+C---------------------------------------------------
+C     Sets design CL(s) for Qspec distributions and
+C     recomputes QSPEC via circle-plane mapping.
+C     Corresponds to MDES command CQ.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in
+      REAL*8 cl_arr(n_in)
+Cf2py intent(in) :: cl_arr
+Cf2py integer intent(hide),depend(cl_arr) :: n_in = len(cl_arr)
+C
+      NQSP = MAX(1, MIN(n_in, IPX))
+      IACQSP = 2
+      DO K = 1, NQSP
+        CLQSP(K) = cl_arr(K)
+      ENDDO
+      CALL QSPCIR
+C
+      END SUBROUTINE SETCL
+
+C=======================================================================
+      SUBROUTINE MDES_SETQSPEC(qsp_in, n_in, kqsp_in)
+C---------------------------------------------------
+C     Sets the QSPEC array for a given index, then
+C     recomputes Cn mapping coefficients and all
+C     Qspec distributions.
+C     Replaces the interactive MODI command.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER n_in, kqsp_in
+      REAL*8 qsp_in(n_in)
+Cf2py intent(in) :: qsp_in, kqsp_in
+Cf2py integer intent(hide),depend(qsp_in) :: n_in = len(qsp_in)
+C
+      INTEGER KQSP
+      KQSP = MAX(1, MIN(kqsp_in, MAX(NQSP,1)))
+C
+      DO I = 1, MIN(n_in, NSP)
+        QSPEC(I,KQSP) = qsp_in(I)
+      ENDDO
+      CALL SPLQSP(KQSP)
+C
+C---- recompute Cn from modified Qspec
+      CALL CNCALC(QSPEC(1,KQSP), LQSYM)
+C
+C---- recompute all Qspec distributions
+      CALL QSPCIR
+C
+      END SUBROUTINE MDES_SETQSPEC
+
+C=======================================================================
+      SUBROUTINE MDES_RESETQSPEC()
+C---------------------------------------------------
+C     Resets QSPEC from current Q(w) by recomputing
+C     Cn from QGAMM. Applies symmetry if enabled.
+C     Corresponds to MDES command QSET.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+C
+      CALL CNCALC(QGAMM, .FALSE.)
+      IF(LQSYM) CALL CNSYMM
+      CALL QSPCIR
+C
+      END SUBROUTINE MDES_RESETQSPEC
+
+C=======================================================================
+      SUBROUTINE MDES_SETSYMM(lsymm_in)
+C---------------------------------------------------
+C     Sets the symmetry flag for MDES. If enabled,
+C     eliminates imaginary (camber) parts of the
+C     Cn mapping coefficients.
+C     Corresponds to MDES command SYMM.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      LOGICAL lsymm_in
+Cf2py intent(in) :: lsymm_in
+C
+      LQSYM = lsymm_in
+      IF(LQSYM) THEN
+        CALL CNSYMM
+        CALL QSPCIR
+      ENDIF
+C
+      END SUBROUTINE MDES_SETSYMM
+
+C=======================================================================
+      SUBROUTINE MDES_SETTGAP(dx_in, dy_in)
+C---------------------------------------------------
+C     Sets the trailing-edge gap in the complex plane.
+C     Corresponds to MDES command TGAP.
+C
+C     Input: dx_in  x-component of TE gap
+C            dy_in  y-component of TE gap
+C---------------------------------------------------
+      INCLUDE 'CIRCLE.INC'
+      REAL*8 dx_in, dy_in
+Cf2py intent(in) :: dx_in, dy_in
+C
+      CALL DZTSET(dx_in, dy_in)
+C
+      END SUBROUTINE MDES_SETTGAP
+
+C=======================================================================
+      SUBROUTINE MDES_SETTANG(angle_deg)
+C---------------------------------------------------
+C     Sets the trailing-edge angle in degrees.
+C     Corresponds to MDES command TANG.
+C---------------------------------------------------
+      INCLUDE 'CIRCLE.INC'
+      REAL*8 angle_deg
+Cf2py intent(in) :: angle_deg
+C
+      CALL AGTSET(angle_deg)
+C
+      END SUBROUTINE MDES_SETTANG
+
+C=======================================================================
+      SUBROUTINE MDES_SLOP(lqslop_in)
+C---------------------------------------------------
+C     Sets the slope-matching flag for Qspec
+C     modification. Corresponds to MDES command SLOP.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      LOGICAL lqslop_in
+Cf2py intent(in) :: lqslop_in
+C
+      LQSLOP = lqslop_in
+C
+      END SUBROUTINE MDES_SLOP
+
+C=======================================================================
+      SUBROUTINE MDES_MARK(iq1_in, iq2_in)
+C---------------------------------------------------
+C     Sets the target segment endpoint indices for
+C     MDES smoothing. Replaces the interactive
+C     cursor-based MARK command.
+C
+C     Input: iq1_in  start index (1-based, 1..NSP)
+C            iq2_in  end index   (1-based, 1..NSP)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER iq1_in, iq2_in
+Cf2py intent(in) :: iq1_in, iq2_in
+C
+      IQ1 = MAX(1,   MIN(iq1_in, NSP))
+      IQ2 = MAX(IQ1, MIN(iq2_in, NSP))
+C
+      END SUBROUTINE MDES_MARK
+
+C=======================================================================
+      SUBROUTINE MDES_SMOOTH(kqsp_in)
+C---------------------------------------------------
+C     Smooths QSPEC in the target segment [IQ1,IQ2],
+C     then recomputes Cn coefficients and all Qspec
+C     distributions.
+C     Corresponds to MDES command SMOO.
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INTEGER kqsp_in
+Cf2py intent(in) :: kqsp_in
+C
+      INTEGER KQSP
+      KQSP = MAX(1, MIN(kqsp_in, MAX(NQSP,1)))
+      CALL SMOOQ(IQ1, IQ2, KQSP)
+      CALL CNCALC(QSPEC(1,KQSP), LQSYM)
+      CALL QSPCIR
+C
+      END SUBROUTINE MDES_SMOOTH
+
+C=======================================================================
+      SUBROUTINE MDES_FILTER(ffilt_in)
+C---------------------------------------------------
+C     Applies a modified Hanning filter to the Cn
+C     Fourier coefficients. Higher harmonics are
+C     attenuated. Then recomputes Qspec.
+C     Corresponds to MDES command FILT.
+C
+C     Input: ffilt_in  filter exponent (typical 0.2)
+C                      0.0 = no filtering
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'CIRCLE.INC'
+      REAL*8 ffilt_in
+Cf2py intent(in) :: ffilt_in
+C
+      CALL CNFILT(ffilt_in)
+      CALL PIQSUM
+      CALL QSPCIR
+C
+      END SUBROUTINE MDES_FILTER
+
+C=======================================================================
+      SUBROUTINE RUNMDES(ffilt_in)
+C---------------------------------------------------
+C     Executes the full-inverse design calculation.
+C     Generates a new airfoil geometry from the
+C     current Cn Fourier coefficients and stores the
+C     result in the buffer airfoil (XB,YB).
+C
+C     After execution, call PANEL() or SETAIRFOIL()
+C     to make the new buffer airfoil current.
+C
+C     Corresponds to MDES command EXEC.
+C
+C     Input: ffilt_in  Hanning filter parameter
+C                      (0.0 = no filtering)
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'CIRCLE.INC'
+      REAL*8 ffilt_in
+Cf2py intent(in) :: ffilt_in
+C
+C---- generate new geometry from Cn coefficients
+      CALL MAPGEN(ffilt_in, NB, XB, YB)
+C
+C---- re-spline new buffer airfoil
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+C---- recalculate buffer airfoil geometry parameters
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB)
+C
+      LGSAME = .FALSE.
+C
+      END SUBROUTINE RUNMDES
+
+C=======================================================================
+      SUBROUTINE MDES_PERT(m_in, dcnr_in, dcni_in)
+C---------------------------------------------------
+C     Perturbs Cn coefficient m by (dcnr, dcni),
+C     recomputes geometry, and generates a new
+C     buffer airfoil.
+C     Corresponds to MDES command PERT.
+C
+C     Input: m_in      index of Cn to perturb (1..MC)
+C            dcnr_in   real part of perturbation
+C            dcni_in   imaginary part of perturbation
+C---------------------------------------------------
+      INCLUDE 'XFOIL.INC'
+      INCLUDE 'CIRCLE.INC'
+      INTEGER m_in
+      REAL*8 dcnr_in, dcni_in
+Cf2py intent(in) :: m_in, dcnr_in, dcni_in
+C
+C---- perturb Cn and recompute geometry
+      CALL PERT(QSPEC(1,1), m_in, dcnr_in, dcni_in)
+C
+C---- recompute all Qspec distributions
+      CALL QSPCIR
+C
+C---- generate buffer airfoil from perturbed Cn
+      CALL MAPGEN(FFILT, NB, XB, YB)
+C
+C---- re-spline buffer airfoil
+      CALL SCALC(XB,YB,SB,NB)
+      CALL SEGSPL(XB,XBP,SB,NB)
+      CALL SEGSPL(YB,YBP,SB,NB)
+C
+      CALL GEOPAR(XB,XBP,YB,YBP,SB,NB,W1,
+     &            SBLE,CHORDB,AREAB,RADBLE,ANGBTE,
+     &            EI11BA,EI22BA,APX1BA,APX2BA,
+     &            EI11BT,EI22BT,APX1BT,APX2BT,
+     &            THICKB,CAMBRB)
+C
+      LGSAME = .FALSE.
+C
+      END SUBROUTINE MDES_PERT
+
+C=======================================================================
+      SUBROUTINE GETMDESINFO(nc_out, mc_out,
+     &                       cn_real, cn_imag, n_in)
+C---------------------------------------------------
+C     Returns the complex Cn mapping coefficients
+C     as two real arrays (real and imaginary parts).
+C
+C     Input:  n_in     array size (use MC+1, from
+C                      nc_out or mc_out+1)
+C     Output: nc_out   number of circle-plane points
+C             mc_out   number of Fourier harmonics
+C             cn_real  real parts of Cn (0..MC)
+C             cn_imag  imaginary parts of Cn (0..MC)
+C
+C     Note: Python index 0 corresponds to C0, index 1
+C     to C1, etc.
+C---------------------------------------------------
+      INCLUDE 'CIRCLE.INC'
+      INTEGER nc_out, mc_out, n_in
+      REAL*8 cn_real(n_in), cn_imag(n_in)
+Cf2py intent(out) :: nc_out, mc_out
+Cf2py intent(in) :: n_in
+Cf2py intent(out) :: cn_real, cn_imag
+C
+      nc_out = NC
+      mc_out = MC
+C
+      DO M = 1, MIN(n_in, MC+1)
+        cn_real(M) = REAL(CN(M-1))
+        cn_imag(M) = IMAG(CN(M-1))
+      ENDDO
+C
+      END SUBROUTINE GETMDESINFO
