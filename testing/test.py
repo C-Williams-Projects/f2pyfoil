@@ -9,8 +9,7 @@ DAE_11 = {
 
 
 def Test(file_db, ID, tol=1e-6):
- 
-    # ------------------------------------------------------------------ load DB
+
     con = sqlite3.connect(file_db)
     cur = con.cursor()
  
@@ -36,13 +35,11 @@ def Test(file_db, ID, tol=1e-6):
     ref_xtt    = polar[:, 4]
     ref_xtb    = polar[:, 5]
  
-    # bl_surface and bl (single-point runs only)
     ref_cp = ref_cf = ref_hstar = None
     ref_s  = ref_x  = ref_y    = None
     ref_ue = ref_dstar = ref_theta = ref_h = None
  
     if run_type in ("alfa", "cl"):
-        # cp is saved for both viscous and inviscid single-point runs
         cp_rows = cur.execute("""
             SELECT cp FROM bl_surface
             WHERE test_id = ? ORDER BY rowid
@@ -50,7 +47,6 @@ def Test(file_db, ID, tol=1e-6):
         ref_cp = np.array(cp_rows, dtype=float).ravel()
  
         if Re != 0.0:
-            # cf and hstar only exist for viscous runs
             bls_rows  = cur.execute("""
                 SELECT cf, hstar FROM bl_surface
                 WHERE test_id = ? ORDER BY rowid
@@ -73,7 +69,6 @@ def Test(file_db, ID, tol=1e-6):
             ref_h     = bl[:, 6]
  
     con.close()
-    # -----------------------------------------------------------------------
  
     Description = run_type
  
@@ -87,7 +82,6 @@ def Test(file_db, ID, tol=1e-6):
     xf.panel()
  
     xf.flowcons(Re, M)
-    xf.setblrlx(1.50, -0.50, 0.25)
     xf.settrip(xtrip_top, xtrip_bot)
     xf.setncrit12(ncrit_top, ncrit_bot)
     xf.maxiter(600)
