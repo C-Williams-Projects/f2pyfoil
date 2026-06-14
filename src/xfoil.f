@@ -27,11 +27,6 @@ C---------------------------------------------------
       INCLUDE 'CPCOR.INC'
       INCLUDE 'QUIET.INC'
 C
-      PI = 4.0*ATAN(1.0)
-      HOPI = 0.50/PI
-      QOPI = 0.25/PI
-      DTOR = PI/180.0
-C
 C---- default Cp/Cv (air)
       GAMMA = 1.4
       GAMM1 = GAMMA - 1.0

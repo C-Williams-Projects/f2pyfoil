@@ -394,8 +394,6 @@ C
       LOGICAL SING
       INTEGER I, IB
 C
-      PI = 4.0 * ATAN(1.0)
-C
 C---- solve the two PARSEC 6x6 systems
       CALL PRSCOEF(rle_up, Xup, Zup, Zxxup,
      &             rle_lo, Xlo, Zlo, Zxxlo,

@@ -89,6 +89,7 @@ C     Fourier coefficients Cn, modifying them as needed
 C     to achieve specified constraints.
 C--------------------------------------------------------
       INCLUDE 'CIRCLE.INC'
+      INCLUDE 'MATH.INC'
       INCLUDE 'QUIET.INC'
       DIMENSION X(NC), Y(NC)
 C
@@ -181,6 +182,7 @@ C----------------------------------------------------------
       DIMENSION X(N),XP(N),Y(N),YP(N),S(N)
 C
       INCLUDE 'CIRCLE.INC'
+      INCLUDE 'MATH.INC'
       INCLUDE 'QUIET.INC'
       COMPLEX DCN, ZLE, ZTE
 cc      DATA CEPS, SEPS / 1.0E-5, 5.0E-5 /
@@ -372,6 +374,7 @@ C----------------------------------------------------------
       LOGICAL LSYMM
 C
       INCLUDE 'CIRCLE.INC'
+      INCLUDE 'MATH.INC'
       DIMENSION QCW(ICX)
 C
       COMPLEX CNSAV
@@ -499,6 +502,7 @@ C     Filters out upper harmonics
 C     with modified Hanning filter.
 C-------------------------------------
       INCLUDE 'CIRCLE.INC'
+      INCLUDE 'MATH.INC'
 C
       IF(FFILT.EQ.0.0) RETURN
 C
@@ -523,6 +527,7 @@ C     the geometry sensitivities dz/dCn  (1 < n < MTEST)
 C     for each point.
 C--------------------------------------------------------
       INCLUDE 'CIRCLE.INC'
+      INCLUDE 'MATH.INC'
       COMPLEX DZDW1, DZDW2, DZ_PIQ1, DZ_PIQ2
 C
 C---- integrate upper airfoil surface coordinates from x,y = 4,0
@@ -792,6 +797,7 @@ C----------------------------------------------------------------
 C     Slow-Fourier-Transform P(w) using Trapezoidal integration.
 C----------------------------------------------------------------
       INCLUDE 'CIRCLE.INC'
+      INCLUDE 'MATH.INC'
       COMPLEX ZSUM
 C
       DO 200 M=0, MC
@@ -816,8 +822,7 @@ C     corresponding complex unit numbers exp(inw)
 C     for Slow Fourier Transform operations.
 C----------------------------------------------------
       INCLUDE 'CIRCLE.INC'
-C
-      PI = 4.0*ATAN(1.0)
+      INCLUDE 'MATH.INC'
 C
 C---- set requested number of points in circle plane
       NC  = NC1
@@ -862,6 +867,7 @@ C     Calculates the perturbed geometry resulting from
 C     one Cn mapping coefficient being perturbed.
 C--------------------------------------------------------
       INCLUDE 'CIRCLE.INC'
+      INCLUDE 'MATH.INC'
       INCLUDE 'QUIET.INC'
       DIMENSION QSPEC(ICX)
       INTEGER M

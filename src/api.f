@@ -49,7 +49,7 @@ C
 C***********************************************************************
 C Airfoil and Buffer Routines
 C***********************************************************************
-      SUBROUTINE SETGEOM(X_in, Y_in, N_in)
+      SUBROUTINE SET_GEOM(X_in, Y_in, N_in)
       INCLUDE 'XFOIL.INC'
       INCLUDE 'QUIET.INC'
 C------------------------------------------------------
@@ -171,10 +171,10 @@ C
      &  /'           (doing GDES,CADD before repaneling _may_'
      &  /'            improve excessively coarse LE spacing' )
 C
-      END SUBROUTINE SETGEOM
+      END SUBROUTINE SET_GEOM
       
 C=======================================================================
-      SUBROUTINE SETNACA(desig)
+      SUBROUTINE SET_NACA(desig)
 C---------------------------------------------------
 C     Generates and panels a NACA 4 or 5 digit
 C     airfoil from a character designation string.
@@ -242,10 +242,10 @@ ccc      CALL PANPLT
 C
       RETURN
 C
-      END SUBROUTINE SETNACA
+      END SUBROUTINE SET_NACA
 C
 C=======================================================================
-      SUBROUTINE SETCST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
+      SUBROUTINE SET_CST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
 C---------------------------------------------------
 C     CST airfoil parameterisation entry point.
 C     Builds a CST airfoil, loads the buffer arrays
@@ -266,11 +266,11 @@ Cf2py intent(in) :: N1, N2
 C
       CALL CST(LEM, TE, Au, NAu, Al, NAl, N1, N2)
 C
-      END SUBROUTINE SETCST
+      END SUBROUTINE SET_CST
 C
 
 C=======================================================================
-      SUBROUTINE SETPARSEC(rle_up, Xup, Zup, Zxxup,
+      SUBROUTINE SET_PARSEC(rle_up, Xup, Zup, Zxxup,
      &                     rle_lo, Xlo, Zlo, Zxxlo,
      &                     Zte, dZte, alpha_te_deg, beta_te_deg)
 C---------------------------------------------------
@@ -303,7 +303,7 @@ C
      &            rle_lo, Xlo, Zlo, Zxxlo,
      &            Zte, dZte, alpha_te_deg, beta_te_deg)
 C
-      END SUBROUTINE SETPARSEC
+      END SUBROUTINE SET_PARSEC
 C
 C=======================================================================
       SUBROUTINE PANEL()
@@ -365,7 +365,7 @@ C
       END SUBROUTINE REPANEL
 
 C=======================================================================
-      SUBROUTINE TOBUFFER()
+      SUBROUTINE SET_ASBUFFER()
 C---------------------------------------------------
 C     Copies the current airfoil geometry (X,Y) to
 C     the buffer airfoil arrays (XB,YB), re-splines,
@@ -395,10 +395,10 @@ C
 C
       LGSAME = .TRUE.
 C
-      END SUBROUTINE TOBUFFER
+      END SUBROUTINE SET_ASBUFFER
 
 C=======================================================================
-      SUBROUTINE SETAIRFOIL()
+      SUBROUTINE SET_ASPANELS()
 C---------------------------------------------------
 C     Copies the buffer airfoil to the current
 C     airfoil, re-splines, and resets all dependent
@@ -407,12 +407,12 @@ C     to make them active for analysis.
 C---------------------------------------------------
       CALL ABCOPY(.FALSE.)
 C
-      END SUBROUTINE SETAIRFOIL
+      END SUBROUTINE SET_ASPANELS
 
 C***********************************************************************
 C Geometry Retrieval Routines
 C***********************************************************************
-      SUBROUTINE GETN(n_out)
+      SUBROUTINE GET_N(n_out)
 C---------------------------------------------------
 C     Returns the number of panel nodes for GET_CP.
 C     Call this first to allocate the buffer, then
@@ -426,9 +426,9 @@ Cf2py intent(out) :: n_out
 C
       n_out = N
 C
-      END SUBROUTINE GETN
+      END SUBROUTINE GET_N
 C=======================================================================
-      SUBROUTINE GETNB(n_out)
+      SUBROUTINE GET_NB(n_out)
 C---------------------------------------------------
 C     Returns the number of buffer airfoil points
 C     for GETBUFFER.  Call this first to allocate
@@ -443,10 +443,10 @@ Cf2py intent(out) :: n_out
 C
       n_out = NB
 C
-      END SUBROUTINE GETNB
+      END SUBROUTINE GET_NB
 
 C=======================================================================
-      SUBROUTINE GETNBL(n_out)
+      SUBROUTINE GET_NBL(n_out)
 C---------------------------------------------------
 C     Returns the total number of boundary layer
 C     data points for GET_BL.  Call this first to
@@ -469,10 +469,10 @@ C
         n_out = N
       ENDIF
 C
-      END SUBROUTINE GETNBL
+      END SUBROUTINE GET_NBL
 
 C=======================================================================
-      SUBROUTINE GETBUFFER(x_arr, y_arr, n_in)
+      SUBROUTINE GET_BUFFER(x_arr, y_arr, n_in)
 C---------------------------------------------------
 C     Returns current buffer airfoil coordinates.
 C     Call GETBUFFER_N first to obtain n_in.
@@ -494,10 +494,10 @@ C
         y_arr(i) = YB(i)
       ENDDO
 C
-      END SUBROUTINE GETBUFFER
+      END SUBROUTINE GET_BUFFER
 
 C=======================================================================
-      SUBROUTINE GETGEOM(x_arr, y_arr, n_in)
+      SUBROUTINE GET_GEOM(x_arr, y_arr, n_in)
 C---------------------------------------------------
 C     Returns current airfoil panel coordinates.
 C     Call GETN first to obtain n_in.
@@ -519,12 +519,12 @@ C
         y_arr(i) = Y(i)
       ENDDO
 C
-      END SUBROUTINE GETGEOM
+      END SUBROUTINE GET_GEOM
 
 C***********************************************************************
 C Oper Settings
 C***********************************************************************
-      SUBROUTINE SETFLOW(Re, Ma)
+      SUBROUTINE SET_FLOW(Re, Ma)
 C---------------------------------------------------
 C     Sets Reynolds and Mach numbers.
 C     Setting Re > 0 automatically enables viscous
@@ -546,10 +546,10 @@ C
       CALL MRCL(1.0, MINF_CLM, REINF_CLM)
       CALL COMSET
 C
-      END SUBROUTINE SETFLOW
+      END SUBROUTINE SET_FLOW
 
 C=======================================================================
-      SUBROUTINE SETTRIP(Xtrip1, Xtrip2)
+      SUBROUTINE SET_TRIP(Xtrip1, Xtrip2)
 C---------------------------------------------------
 C     Sets transition parameters.
 C     Xtrip1: upper surface trip x/c location
@@ -566,10 +566,10 @@ C
       XSTRIP(1) = Xtrip1
       XSTRIP(2) = Xtrip2
 C
-      END SUBROUTINE SETTRIP
+      END SUBROUTINE SET_TRIP
 
 C=======================================================================
-      SUBROUTINE SETNCRIT(Ncrit1, Ncrit2)
+      SUBROUTINE SET_NCRIT(Ncrit1, Ncrit2)
 C---------------------------------------------------
 C     Sets transition parameters.
 C     Xtrip1: upper surface trip x/c location
@@ -586,10 +586,10 @@ C
       ACRIT(1)  = Ncrit1
       ACRIT(2)  = Ncrit2
 C
-      END SUBROUTINE SETNCRIT
+      END SUBROUTINE SET_NCRIT
 C
 C=======================================================================
-      SUBROUTINE SETCCOR(icor)
+      SUBROUTINE SET_CCOR(icor)
 C---------------------------------------------------
 C     Selects compressibility correction method.
 C     icor = 0  Prandtl-Glauert
@@ -601,11 +601,11 @@ C---------------------------------------------------
 Cf2py intent(in) :: icor
       ICCOR = icor
       CALL COMSET
-      END SUBROUTINE SETCCOR
+      END SUBROUTINE SET_CCOR
 C
 
 C=======================================================================
-      SUBROUTINE RESETBL()
+      SUBROUTINE RESET_BL()
 C---------------------------------------------------
 C     Resets boundary layer initialisation flags.
 C     Call between sequential analyses to force
@@ -616,12 +616,12 @@ C
       LBLINI = .FALSE.
       LIPAN  = .FALSE.
 C
-      END SUBROUTINE RESETBL
+      END SUBROUTINE RESET_BL
 
 C***********************************************************************
 C Solver Controls
 C***********************************************************************
-      SUBROUTINE SETBLRLX(DHI_in, DLO_in, DNUE_in)
+      SUBROUTINE SET_BLRLX(DHI_in, DLO_in, DNUE_in)
 C---------------------------------------------------
 C     Sets BL solver relaxation parameters.
 C     DHI_in:  high limit for normalized change (default 1.5)
@@ -640,10 +640,10 @@ C
       RLXPAR_DLO  = DLO_in
       RLXPAR_DNUE = DNUE_in
 C
-      END SUBROUTINE SETBLRLX
+      END SUBROUTINE SET_BLRLX
 C
 C=======================================================================
-      SUBROUTINE MAXITER(Iter)
+      SUBROUTINE SET_MAXITER(Iter)
 C---------------------------------------------------
 C     Sets the maximum number of viscous iterations.
 C---------------------------------------------------
@@ -653,12 +653,12 @@ Cf2py intent(in) :: Iter
 C
       ITMAX = Iter
 C
-      END SUBROUTINE MAXITER
+      END SUBROUTINE SET_MAXITER
 C
 C***********************************************************************
 C Oper Analysis Routines
 C***********************************************************************
-      SUBROUTINE RUNALPHA(alpha_deg,
+      SUBROUTINE OPER_ALPHA(alpha_deg,
      &                 cl_out, cd_out, cm_out,
      &                 xtu_out, xtb_out, conv_out)
 C---------------------------------------------------
@@ -704,10 +704,10 @@ C
       xtu_out = XOCTR(1)
       xtb_out = XOCTR(2)
 C
-      END SUBROUTINE RUNALPHA
+      END SUBROUTINE OPER_ALPHA
 
 C=======================================================================
-      SUBROUTINE RUNASEQ(alpha_i, alpha_f, n_alpha,
+      SUBROUTINE OPER_ASEQ(alpha_i, alpha_f, n_alpha,
      &                a_arr, cl_arr, cd_arr, cm_arr,
      &                xtu_arr, xtb_arr, conv_arr)
 C---------------------------------------------------
@@ -772,10 +772,10 @@ C
         xtb_arr(i) = XOCTR(2)
       ENDDO
 C
-      END SUBROUTINE RUNASEQ
+      END SUBROUTINE OPER_ASEQ
 
 C=======================================================================
-      SUBROUTINE RUNCL(cl_val,
+      SUBROUTINE OPER_CL(cl_val,
      &                   a_out, cl_out, cd_out, cm_out, 
      &                   xtu_out, xtb_out, conv_out)
 C---------------------------------------------------
@@ -828,10 +828,10 @@ C
       xtu_out = XOCTR(1)
       xtb_out = XOCTR(2)
 C
-      END SUBROUTINE RUNCL
+      END SUBROUTINE OPER_CL
 
 C=======================================================================
-      SUBROUTINE RUNCSEQ(cl_start, cl_end, n_step,
+      SUBROUTINE OPER_CSEQ(cl_start, cl_end, n_step,
      &                a_arr, cl_arr, cd_arr, cm_arr, xtu_arr, xtb_arr,
      &                conv_arr)
 C---------------------------------------------------
@@ -900,12 +900,12 @@ C
 C
       ENDDO
 C
-      END SUBROUTINE RUNCSEQ
+      END SUBROUTINE OPER_CSEQ
 C***********************************************************************
 C OPER Data Retrieval Routines
 C***********************************************************************
 
-      SUBROUTINE GETCP(cp_arr, n_in)
+      SUBROUTINE GET_CP(cp_arr, n_in)
 C---------------------------------------------------
 C     Returns pressure coefficient distribution.
 C     Returns CPV if viscous, CPI if inviscid.
@@ -932,10 +932,10 @@ C
         ENDDO
       ENDIF
 C
-      END SUBROUTINE GETCP
+      END SUBROUTINE GET_CP
 
 C=======================================================================
-      SUBROUTINE GETCF(cf_arr, n_in)
+      SUBROUTINE GET_CF(cf_arr, n_in)
 C---------------------------------------------------
 C     Returns pressure coefficient distribution.
 C     Returns CPV if viscous, CPI if inviscid.
@@ -970,10 +970,10 @@ C
         cf_arr(i)    = CF
   10  CONTINUE
 C
-      END SUBROUTINE GETCF
+      END SUBROUTINE GET_CF
 
 C=======================================================================
-      SUBROUTINE GETBL(x_arr, y_arr, ue_arr, dstr_arr,
+      SUBROUTINE GET_BL(x_arr, y_arr, ue_arr, dstr_arr,
      &                  thet_arr, tstr_arr, hk_arr, 
      &                  n_in)
 C---------------------------------------------------
@@ -1081,10 +1081,10 @@ C
   20    CONTINUE
       ENDIF
 C
-      END SUBROUTINE GETBL
+      END SUBROUTINE GET_BL
 
 C=======================================================================
-      SUBROUTINE GETMOREBL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
+      SUBROUTINE GET_MOREBL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
      &                  thet_arr, tstr_arr, hk_arr, hstr_arr, 
      &                  n_in)
 C---------------------------------------------------
@@ -1201,10 +1201,10 @@ C
   20    CONTINUE
       ENDIF
 C
-      END SUBROUTINE GETMOREBL
+      END SUBROUTINE GET_MOREBL
 
 C=======================================================================
-      SUBROUTINE GETALLBL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
+      SUBROUTINE GET_ALLBL(s_arr, x_arr, y_arr, ue_arr, dstr_arr,
      &                  thet_arr, hk_arr, cdis_arr, ct_arr,
      &                   P_arr, m_arr, K_arr,
      &                  n_in)
@@ -1342,12 +1342,12 @@ C
   20    CONTINUE
       ENDIF
 C
-      END SUBROUTINE GETALLBL
+      END SUBROUTINE GET_ALLBL
 
 C***********************************************************************
 C Geometry Design Routines
 C***********************************************************************
-      SUBROUTINE SETFLAP(Xcloc, Ycloc, DegDef)
+      SUBROUTINE SET_FLAP(Xcloc, Ycloc, DegDef)
 C---------------------------------------------------
 C     Adds a flap to the current airfoil geometry.
 C     Xcloc, Ycloc: hinge point location (normalised to chord)
@@ -1357,7 +1357,7 @@ C---------------------------------------------------
 Cf2py intent(in) :: Xcloc, Ycloc, DegDef
 
       CALL FLAP(Xcloc, Ycloc, DegDef)
-      END SUBROUTINE SETFLAP
+      END SUBROUTINE SET_FLAP
 
 C=======================================================================
       SUBROUTINE ANGREFINE(atol_in, x1_in, x2_in)
@@ -1409,7 +1409,7 @@ C
       END SUBROUTINE ANGREFINE
 
 C=======================================================================
-      SUBROUTINE INTERP(X2_in, Y2_in, N2_in, frac_in)
+      SUBROUTINE GEOM_INTERP(X2_in, Y2_in, N2_in, frac_in)
 C---------------------------------------------------
 C     Produces an intermediate buffer airfoil by
 C     blending the current airfoil (source 0) with a
@@ -1476,10 +1476,10 @@ C---- recompute geometry parameters
 C
       LGSAME = .FALSE.
 C
-      END SUBROUTINE INTERP
+      END SUBROUTINE GEOM_INTERP
 
 C=======================================================================
-      SUBROUTINE ROTATEGEOM(angle_in, in_degrees)
+      SUBROUTINE GEOM_ROTATE(angle_in, in_degrees)
 C---------------------------------------------------
 C     Rotates all buffer airfoil points about the
 C     origin by a specified angle.
@@ -1518,10 +1518,10 @@ C---- recompute geometry parameters
 C
       LGSAME = .FALSE.
 C
-      END SUBROUTINE ROTATEGEOM
+      END SUBROUTINE GEOM_ROTATE
 
 C=======================================================================
-      SUBROUTINE SETTGAP(gapnew_in, doc_in)
+      SUBROUTINE SET_TGAP(gapnew_in, doc_in)
 C---------------------------------------------------
 C     Modifies the trailing-edge gap of the buffer
 C     airfoil to a specified value while blending
@@ -1537,10 +1537,10 @@ Cf2py intent(in) :: gapnew_in, doc_in
 C
       CALL TGAP(gapnew_in, doc_in)
 C
-      END SUBROUTINE SETTGAP
+      END SUBROUTINE SET_TGAP
 
 C=======================================================================
-      SUBROUTINE SETLERAD(rfac_in, doc_in)
+      SUBROUTINE SET_LERAD(rfac_in, doc_in)
 C---------------------------------------------------
 C     Scales the leading-edge radius of the buffer
 C     airfoil by a target ratio while preserving the
@@ -1558,10 +1558,10 @@ Cf2py intent(in) :: rfac_in, doc_in
 C
       CALL LERAD(rfac_in, doc_in)
 C
-      END SUBROUTINE SETLERAD
+      END SUBROUTINE SET_LERAD
 
 C=======================================================================
-      SUBROUTINE SCALETHCAM(tfac_in, cfac_in)
+      SUBROUTINE SET_SCALETHCAM(tfac_in, cfac_in)
 C---------------------------------------------------
 C     Scales the existing thickness and camber
 C     distributions of the buffer airfoil by
@@ -1577,10 +1577,10 @@ Cf2py intent(in) :: tfac_in, cfac_in
 C
       CALL TCSCAL(tfac_in, cfac_in)
 C
-      END SUBROUTINE SCALETHCAM
+      END SUBROUTINE SET_SCALETHCAM
 
 C=======================================================================
-      SUBROUTINE SETTHCAM(tnew_in, cnew_in)
+      SUBROUTINE SET_THCAM(tnew_in, cnew_in)
 C---------------------------------------------------
 C     Sets the buffer airfoil to a specified maximum
 C     thickness and/or camber value, adjusting the
@@ -1598,10 +1598,10 @@ Cf2py intent(in) :: tnew_in, cnew_in
 C
       CALL TCSET(tnew_in, cnew_in)
 C
-      END SUBROUTINE SETTHCAM
+      END SUBROUTINE SET_THCAM
 
 C=======================================================================
-      SUBROUTINE MOVHIPNT(thpnt_in, chpnt_in)
+      SUBROUTINE SET_HIPNT(thpnt_in, chpnt_in)
 C---------------------------------------------------
 C     Shifts the chordwise location of the thickness
 C     and/or camber highpoints of the buffer airfoil
@@ -1619,12 +1619,12 @@ Cf2py intent(in) :: thpnt_in, chpnt_in
 C
       CALL HIPNT(thpnt_in, chpnt_in)
 C
-      END SUBROUTINE MOVHIPNT      
+      END SUBROUTINE SET_HIPNT      
 C***********************************************************************
 C Geometry Information Retrieval Routines
 C***********************************************************************
 
-      SUBROUTINE GEOMINFO(chord_out, area_out, radle_out,
+      SUBROUTINE GET_GEOMINFO(chord_out, area_out, radle_out,
      &                      angbte_out, thick_out, cambr_out)
 C---------------------------------------------------
 C     Returns the full set of geometric parameters
@@ -1662,10 +1662,10 @@ C
       thick_out  = THICKB
       cambr_out  = CAMBRB
 C
-      END SUBROUTINE GEOMINFO
+      END SUBROUTINE GET_GEOMINFO
 
 C=======================================================================
-      SUBROUTINE PANELANGLE(imax_out, amax_out)
+      SUBROUTINE GET_PANANG(imax_out, amax_out)
 C---------------------------------------------------
 C     Returns the index and magnitude of the maximum
 C     panel corner angle across the buffer airfoil.
@@ -1681,10 +1681,10 @@ Cf2py intent(out) :: imax_out, amax_out
 C
       CALL CANG(XB,YB,NB, 0, imax_out, amax_out)
 C
-      END SUBROUTINE PANELANGLE
+      END SUBROUTINE GET_PANANG
 
 C=======================================================================
-      SUBROUTINE GETSTRUCT(area_out, slen_out,
+      SUBROUTINE GET_STRUCT(area_out, slen_out,
      &                     xc_out, yc_out,
      &                     aixx_out, aixxt_out,
      &                     aiyy_out, aiyyt_out,
@@ -1727,13 +1727,13 @@ C
      &  aiyy_out, aiyyt_out,
      &  aj_out, ajt_out)
 C
-      END SUBROUTINE GETSTRUCT
+      END SUBROUTINE GET_STRUCT
 
 C***********************************************************************
 C QDES and MDES Design Information Retrieval Routines
 C***********************************************************************
 
-      SUBROUTINE GETNSP(nsp_out)
+      SUBROUTINE GET_NSP(nsp_out)
 C---------------------------------------------------
 C     Returns NSP, the number of points in the
 C     QSPEC/SSPEC/QGAMM arrays. In QDES mode this
@@ -1746,10 +1746,10 @@ Cf2py intent(out) :: nsp_out
 C
       nsp_out = NSP
 C
-      END SUBROUTINE GETNSP
+      END SUBROUTINE GET_NSP
 
 C=======================================================================
-      SUBROUTINE QDESINFO(iq1_out, iq2_out, nsp_out, nqsp_out,
+      SUBROUTINE GET_INVINFO(iq1_out, iq2_out, nsp_out, nqsp_out,
      &                       algam_out, clgam_out, cmgam_out)
 C---------------------------------------------------
 C     Returns key scalar state for inverse design.
@@ -1768,10 +1768,10 @@ C
       clgam_out = CLGAM
       cmgam_out = CMGAM
 C
-      END SUBROUTINE QDESINFO
+      END SUBROUTINE GET_INVINFO
 
 C=======================================================================
-      SUBROUTINE GETQSPEC(qsp_out, ssp_out, n_in, kqsp_in)
+      SUBROUTINE GET_QSPEC(qsp_out, ssp_out, n_in, kqsp_in)
 C---------------------------------------------------
 C     Returns the QSPEC and SSPEC arrays for a given
 C     Qspec index.
@@ -1795,10 +1795,10 @@ C
         ssp_out(I) = SSPEC(I)
       ENDDO
 C
-      END SUBROUTINE GETQSPEC
+      END SUBROUTINE GET_QSPEC
 
 C=======================================================================
-      SUBROUTINE GETQGAMM(qgm_out, ssp_out, n_in)
+      SUBROUTINE GET_QGAMM(qgm_out, ssp_out, n_in)
 C---------------------------------------------------
 C     Returns the QGAMM (current surface speed Q)
 C     and SSPEC (normalized arc length) arrays.
@@ -1814,10 +1814,10 @@ C
         ssp_out(I) = SSPEC(I)
       ENDDO
 C
-      END SUBROUTINE GETQGAMM
+      END SUBROUTINE GET_QGAMM
 
 C=======================================================================
-      SUBROUTINE GETXSPOC(xsp_out, ysp_out, n_in)
+      SUBROUTINE GET_XSPOC(xsp_out, ysp_out, n_in)
 C---------------------------------------------------
 C     Returns the XSPOC and YSPOC arrays (x/c, y/c
 C     coordinates at Qspec surface points).
@@ -1833,14 +1833,14 @@ C
         ysp_out(I) = YSPOC(I)
       ENDDO
 C
-      END SUBROUTINE GETXSPOC
+      END SUBROUTINE GET_XSPOC
 
 C***********************************************************************
 C     QDES (Mixed-Inverse) Setup Routines
 C***********************************************************************
 
 C=======================================================================
-      SUBROUTINE STARTQDES()
+      SUBROUTINE QDES_START()
 C---------------------------------------------------
 C     Initializes the QDES (mixed-inverse) mode.
 C     Requires a paneled airfoil with a valid
@@ -1890,10 +1890,10 @@ C---- default flags
       LQSLOP = .TRUE.
       LCPXX  = .FALSE.
 C
-      END SUBROUTINE STARTQDES
+      END SUBROUTINE QDES_START
 
 C=======================================================================
-      SUBROUTINE SEGMENT(iq1_in, iq2_in)
+      SUBROUTINE QDES_MARK(iq1_in, iq2_in)
 C---------------------------------------------------
 C     Sets the target segment endpoint indices for
 C     mixed-inverse design. Replaces the interactive
@@ -1910,10 +1910,10 @@ C
       IQ2 = MAX(IQ1, MIN(iq2_in, NSP))
       LIQSET = .TRUE.
 C
-      END SUBROUTINE SEGMENT
+      END SUBROUTINE QDES_MARK
 
 C=======================================================================
-      SUBROUTINE SETQSPEC(qsp_in, n_in, kqsp_in)
+      SUBROUTINE SET_QDESQSPEC(qsp_in, n_in, kqsp_in)
 C---------------------------------------------------
 C     Sets the QSPEC array for a given Qspec index.
 C     Replaces the interactive MODI command.
@@ -1943,10 +1943,10 @@ C---- zero DOFs
 C
       CALL SPLQSP(KQSP)
 C
-      END SUBROUTINE SETQSPEC
+      END SUBROUTINE SET_QDESQSPEC
 
 C=======================================================================
-      SUBROUTINE RESETQSPEC(kqsp_in)
+      SUBROUTINE QDES_RESETQSPEC(kqsp_in)
 C---------------------------------------------------
 C     Resets QSPEC(kqsp) to the current surface speed
 C     distribution (QGAMM).
@@ -1958,7 +1958,7 @@ Cf2py intent(in) :: kqsp_in
 C
       CALL GAMQSP(MAX(1, MIN(kqsp_in, MAX(NQSP,1))))
 C
-      END SUBROUTINE RESETQSPEC
+      END SUBROUTINE QDES_RESETQSPEC
 
 C=======================================================================
       SUBROUTINE QDES_SMOOTH(kqsp_in)
@@ -1978,7 +1978,7 @@ C
       END SUBROUTINE QDES_SMOOTH
 
 C=======================================================================
-      SUBROUTINE QDESFLAGS(lqslop_in, lcpxx_in)
+      SUBROUTINE QDES_FLAGS(lqslop_in, lcpxx_in)
 C---------------------------------------------------
 C     Sets slope-matching and Cpxx constraint flags.
 C     Corresponds to QDES commands SLOP and CPXX.
@@ -1995,10 +1995,10 @@ C
       LQSLOP = lqslop_in
       LCPXX  = lcpxx_in
 C
-      END SUBROUTINE QDESFLAGS
+      END SUBROUTINE QDES_FLAGS
 
 C=======================================================================
-      SUBROUTINE RUNQDES(kqsp_in, niterq_in)
+      SUBROUTINE QDES_RUN(kqsp_in, niterq_in)
 C---------------------------------------------------
 C     Executes the mixed-inverse design calculation.
 C     Modifies the current airfoil geometry in the
@@ -2101,7 +2101,7 @@ C---- invalidate dependent solutions
       LSCINI = .FALSE.
       LGSAME = .FALSE.
 C
-      END SUBROUTINE RUNQDES
+      END SUBROUTINE QDES_RUN
 
 
 C=======================================================================
@@ -2109,7 +2109,7 @@ C     MDES (FULL-INVERSE) DESIGN SUBROUTINES
 C=======================================================================
 
 C=======================================================================
-      SUBROUTINE STARTMDES()
+      SUBROUTINE MDES_START()
 C---------------------------------------------------
 C     Initializes the MDES (full-inverse) mode.
 C     Sets up circle-plane mapping from the current
@@ -2162,10 +2162,10 @@ C---- default flags
       LQSLOP = .TRUE.
       LQSYM  = .FALSE.
 C
-      END SUBROUTINE STARTMDES
+      END SUBROUTINE MDES_START
 
 C=======================================================================
-      SUBROUTINE SETNQSP(nqsp_in)
+      SUBROUTINE SET_MDESNQSP(nqsp_in)
 C---------------------------------------------------
 C     Sets the number of Qspec distributions (1..IPX).
 C     New entries are initialized from QSPEC(1).
@@ -2188,10 +2188,10 @@ C---- initialize any new entries from QSPEC(1)
         ENDDO
       ENDDO
 C
-      END SUBROUTINE SETNQSP
+      END SUBROUTINE SET_MDESNQSP
 
 C=======================================================================
-      SUBROUTINE SETALPHA(alpha_arr, n_in)
+      SUBROUTINE SET_MDESALPHA(alpha_arr, n_in)
 C---------------------------------------------------
 C     Sets design angle(s) of attack (degrees) for
 C     Qspec distributions and recomputes QSPEC via
@@ -2214,10 +2214,10 @@ C
       ENDDO
       CALL QSPCIR
 C
-      END SUBROUTINE SETALPHA
+      END SUBROUTINE SET_MDESALPHA
 
 C=======================================================================
-      SUBROUTINE SETCL(cl_arr, n_in)
+      SUBROUTINE SET_MDESCL(cl_arr, n_in)
 C---------------------------------------------------
 C     Sets design CL(s) for Qspec distributions and
 C     recomputes QSPEC via circle-plane mapping.
@@ -2236,10 +2236,10 @@ C
       ENDDO
       CALL QSPCIR
 C
-      END SUBROUTINE SETCL
+      END SUBROUTINE SET_MDESCL
 
 C=======================================================================
-      SUBROUTINE MDES_SETQSPEC(qsp_in, n_in, kqsp_in)
+      SUBROUTINE SET_MDESQSPEC(qsp_in, n_in, kqsp_in)
 C---------------------------------------------------
 C     Sets the QSPEC array for a given index, then
 C     recomputes Cn mapping coefficients and all
@@ -2266,7 +2266,7 @@ C
 C---- recompute all Qspec distributions
       CALL QSPCIR
 C
-      END SUBROUTINE MDES_SETQSPEC
+      END SUBROUTINE SET_MDESQSPEC
 
 C=======================================================================
       SUBROUTINE MDES_RESETQSPEC()
@@ -2304,7 +2304,7 @@ C
       END SUBROUTINE MDES_SETSYMM
 
 C=======================================================================
-      SUBROUTINE MDES_SETTGAP(dx_in, dy_in)
+      SUBROUTINE SET_MDESTGAP(dx_in, dy_in)
 C---------------------------------------------------
 C     Sets the trailing-edge gap in the complex plane.
 C     Corresponds to MDES command TGAP.
@@ -2318,10 +2318,10 @@ Cf2py intent(in) :: dx_in, dy_in
 C
       CALL DZTSET(dx_in, dy_in)
 C
-      END SUBROUTINE MDES_SETTGAP
+      END SUBROUTINE SET_MDESTGAP
 
 C=======================================================================
-      SUBROUTINE MDES_SETTANG(angle_deg)
+      SUBROUTINE SET_MDESTANG(angle_deg)
 C---------------------------------------------------
 C     Sets the trailing-edge angle in degrees.
 C     Corresponds to MDES command TANG.
@@ -2332,10 +2332,10 @@ Cf2py intent(in) :: angle_deg
 C
       CALL AGTSET(angle_deg)
 C
-      END SUBROUTINE MDES_SETTANG
+      END SUBROUTINE SET_MDESTANG
 
 C=======================================================================
-      SUBROUTINE MDES_SLOP(lqslop_in)
+      SUBROUTINE MDES_SLOPE(lqslop_in)
 C---------------------------------------------------
 C     Sets the slope-matching flag for Qspec
 C     modification. Corresponds to MDES command SLOP.
@@ -2346,7 +2346,7 @@ Cf2py intent(in) :: lqslop_in
 C
       LQSLOP = lqslop_in
 C
-      END SUBROUTINE MDES_SLOP
+      END SUBROUTINE MDES_SLOPE
 
 C=======================================================================
       SUBROUTINE MDES_MARK(iq1_in, iq2_in)
@@ -2410,7 +2410,7 @@ C
       END SUBROUTINE MDES_FILTER
 
 C=======================================================================
-      SUBROUTINE RUNMDES(ffilt_in)
+      SUBROUTINE MDES_RUN(ffilt_in)
 C---------------------------------------------------
 C     Executes the full-inverse design calculation.
 C     Generates a new airfoil geometry from the
@@ -2447,7 +2447,7 @@ C---- recalculate buffer airfoil geometry parameters
 C
       LGSAME = .FALSE.
 C
-      END SUBROUTINE RUNMDES
+      END SUBROUTINE MDES_RUN
 
 C=======================================================================
       SUBROUTINE MDES_PERT(m_in, dcnr_in, dcni_in)
@@ -2492,7 +2492,7 @@ C
       END SUBROUTINE MDES_PERT
 
 C=======================================================================
-      SUBROUTINE GETMDESINFO(nc_out, mc_out,
+      SUBROUTINE GET_MDESINFO(nc_out, mc_out,
      &                       cn_real, cn_imag, n_in)
 C---------------------------------------------------
 C     Returns the complex Cn mapping coefficients
@@ -2523,4 +2523,4 @@ C
         cn_imag(M) = IMAG(CN(M-1))
       ENDDO
 C
-      END SUBROUTINE GETMDESINFO
+      END SUBROUTINE GET_MDESINFO

@@ -227,8 +227,6 @@ C
       REAL    PSI(NPSI), YU(NPSI), YL(NPSI)
       INTEGER I, IB
 C
-      PI = 4.0 * ATAN(1.0)
-C
 C---- cosine-spaced psi stations on [0, 1]
 C     Provides finer point density near LE and TE where curvature
 C     is highest, giving PANGEN a good quality spline to re-panel.

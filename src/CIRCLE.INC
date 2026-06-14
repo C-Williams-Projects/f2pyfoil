@@ -12,8 +12,8 @@ C
 C
       COMMON/CPI01/ NC,MC,MCT
 C
-      COMMON/CPR01/ PI,AGTE,AG0,QIM0,QIMOLD,
-     &              DWC,WC(ICX),SC(ICX), 
+      COMMON/CPR01/ AGTE,AG0,QIM0,QIMOLD,
+     &              DWC,WC(ICX),SC(ICX),
      &              SCOLD(ICX),XCOLD(ICX),YCOLD(ICX)
 C
       COMMON/CPC01/ DZTE, CHORDZ, ZLEOLD, ZCOLDW(ICX), 
